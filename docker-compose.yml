@@ -1,0 +1,22 @@
+version: '3'
+services:
+ analysis-players:
+    image: timmytime/predictor-analysis-players:latest
+    container_name: predictor-analysis-players
+    environment:
+     - "SPRING_PROFILES_ACTIVE=prod"
+    ports:
+     - "8095:8095"
+    networks:
+     predictornet:
+      ipv4_address: 172.22.0.21
+networks:
+  predictornet:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.22.0.0/16
+ 

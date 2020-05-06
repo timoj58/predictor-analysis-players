@@ -25,7 +25,7 @@ public class AutomationController {
             method = RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
     public void start(
     ) {
         CompletableFuture.runAsync(() -> automationService.start());
