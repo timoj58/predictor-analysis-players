@@ -5,6 +5,7 @@ import com.timmytime.predictoranalysisplayers.exception.PlayerNotOnFile;
 import com.timmytime.predictoranalysisplayers.facade.MatchFacade;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
+import com.timmytime.predictoranalysisplayers.response.PlayersByTeam;
 import com.timmytime.predictoranalysisplayers.response.data.MatchResponse;
 import com.timmytime.predictoranalysisplayers.response.data.Player;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
@@ -79,6 +80,16 @@ public class PlayerFormServiceImpl implements PlayerFormService {
     @Override
     public PlayerForm get(UUID id) {
         return playerFormRepo.findById(id).orElseThrow(() -> new PlayerNotOnFile());
+    }
+
+    @Override
+    public PlayersByTeam getPlayers(UUID team) {
+
+        PlayersByTeam playersByCompetition = new PlayersByTeam();
+        playersByCompetition.setTeam(team);
+        playersByCompetition.setPlayers(playerFormRepo.findByTeam(team).stream().map(PlayerForm::getId).collect(Collectors.toList()));
+
+        return playersByCompetition;
     }
 
     @Override

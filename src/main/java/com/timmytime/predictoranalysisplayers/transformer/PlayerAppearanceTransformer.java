@@ -30,17 +30,28 @@ public class PlayerAppearanceTransformer {
     //going to need to grab stats at some point. for now...wait.
 
     public BiFunction<UUID, MatchResponse, PlayerAppearance> transform = (playerId, match) -> {
-       PlayerAppearance playerAppearance = new PlayerAppearance(match, DateUtils.convert.apply(match.getDate()));
-       //more to fix..for stats etc...tomorrow task.
         TeamStats teamStats;
         Integer goalsConceded = 0;
+
+        Boolean home = Boolean.FALSE;
+        UUID playerTeam;
+        UUID opponent;
+
         if(match.getPlayerTeam().equals(match.getHomeId())){
-          teamStats = match.getHomeStats();
-          goalsConceded = match.getAwayStats().getScore();
+            teamStats = match.getHomeStats();
+            goalsConceded = match.getAwayStats().getScore();
+            home = Boolean.TRUE;
+            playerTeam = match.getHomeId();
+            opponent = match.getAwayId();
         }else{
             teamStats = match.getAwayStats();
             goalsConceded = match.getHomeStats().getScore();
+            playerTeam = match.getAwayId();
+            opponent = match.getHomeId();
         }
+
+        PlayerAppearance playerAppearance = new PlayerAppearance(match, DateUtils.convert.apply(match.getDate()), home, playerTeam, opponent);
+       //more to fix..for stats etc...tomorrow task.
 
         //not working out pro-rated data (goals conceded / saves) too messy (given red cards minutes wrong too).
         playerAppearance.getStatMetrics().add(new Event(FantasyEventTypes.GOALS_CONCEDED, goalsConceded));

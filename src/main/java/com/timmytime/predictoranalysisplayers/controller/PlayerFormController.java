@@ -2,6 +2,7 @@ package com.timmytime.predictoranalysisplayers.controller;
 
 
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
+import com.timmytime.predictoranalysisplayers.response.PlayersByTeam;
 import com.timmytime.predictoranalysisplayers.service.CompetitionService;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
 import io.swagger.annotations.Api;
@@ -24,7 +25,20 @@ public class PlayerFormController {
     private CompetitionService competitionService;
 
     @RequestMapping(
-            value = "{player-id}",
+            value = "team/{team}",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public ResponseEntity<PlayersByTeam> getAllPlayers(
+            @PathVariable("team") UUID team
+
+    ){
+        return ResponseEntity.ok(playerFormService.getPlayers(team));
+    }
+
+
+    @RequestMapping(
+            value = "player/{player-id}",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")

@@ -18,8 +18,13 @@ public class PlayerAppearance implements Serializable {
 
     private UUID matchId;
     private Date date;
-    private String home;
-    private String away;
+    private Boolean home;
+    private UUID playerTeam;
+    private UUID opponent;
+    private String homeTeam;
+    private String awayTeam;
+
+
     private List<Event> statMetrics = new ArrayList<>();
     private Integer duration;
 
@@ -27,11 +32,14 @@ public class PlayerAppearance implements Serializable {
 
     }
 
-    public PlayerAppearance(MatchResponse matchResponse, Date date){
+    public PlayerAppearance(MatchResponse matchResponse, Date date, Boolean home, UUID playerTeam, UUID opponent){
         this.matchId = matchResponse.getId();
         this.date = date;
-        this.home = matchResponse.getHome();
-        this.away = matchResponse.getAway();
+        this.home = home;
+        this.playerTeam = playerTeam;
+        this.opponent = opponent;
+        this.homeTeam = matchResponse.getHome();
+        this.awayTeam = matchResponse.getAway();
         this.duration = matchResponse.getDuration();
     }
 

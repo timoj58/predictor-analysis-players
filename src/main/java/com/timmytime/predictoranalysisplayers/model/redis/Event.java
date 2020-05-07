@@ -15,7 +15,7 @@ public class Event implements Serializable {
 
     private FantasyEventTypes eventType;
     private String label;
-    private Integer value;
+    private Integer value = 0;
 
     public Event(FantasyEventTypes eventType, Integer value){
         this.eventType = eventType;
