@@ -3,7 +3,7 @@ package com.timmytime.predictoranalysisplayers.enumerator;
 public enum FantasyEventTypes {
     GOALS(Boolean.TRUE),
     GOAL_TYPE(Boolean.FALSE),
-    OWN_GOALS(Boolean.TRUE),
+    OWN_GOALS(Boolean.FALSE),
     SHOTS(Boolean.FALSE),
     ON_TARGET(Boolean.FALSE),
     FOULS_COMMITED(Boolean.FALSE),
@@ -12,8 +12,8 @@ public enum FantasyEventTypes {
     PENALTY_SAVED(Boolean.FALSE),
     PENALTY_MISSED(Boolean.FALSE),
     MINUTES(Boolean.TRUE),
-    RED_CARD(Boolean.TRUE),
-    YELLOW_CARD(Boolean.TRUE),
+    RED_CARD(Boolean.FALSE),
+    YELLOW_CARD(Boolean.FALSE),
     GOALS_CONCEDED(Boolean.TRUE),
     SAVES(Boolean.TRUE),
     UNKNOWN(Boolean.FALSE);

@@ -59,17 +59,17 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
                     PlayerEventOutcomeCsv playerEventOutcomeCsv = new PlayerEventOutcomeCsv();
 
                     playerEventOutcomeCsv.setOpponent(playerAppearance.getOpponent());
-                    playerEventOutcomeCsv.setHome(playerAppearance.getHome());
-                    playerEventOutcomeCsv.setMinutesPlayed(playerAppearance.getDuration());
+                    playerEventOutcomeCsv.setHome(playerAppearance.getHome() ? "home" : "away");
+                    playerEventOutcomeCsv.setMinutes(playerAppearance.getDuration());
 
                     //add in the other stats too....TBC.
-                    playerEventOutcomeCsv.setGoalsAssisted(
+                    playerEventOutcomeCsv.setAssists(
                             playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.ASSISTS)).findFirst().orElse(new Event()).getValue());
 
-                    playerEventOutcomeCsv.setGoalsScored(
+                    playerEventOutcomeCsv.setGoals(
                             playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.GOALS)).findFirst().orElse(new Event()).getValue());
 
-                    playerEventOutcomeCsv.setGoalsConceded(
+                    playerEventOutcomeCsv.setConceded(
                             playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.GOALS_CONCEDED)).findFirst().orElse(new Event()).getValue());
 
                     playerEventOutcomeCsv.setSaves(

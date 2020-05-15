@@ -11,11 +11,11 @@ import java.util.UUID;
 public class PlayerEventOutcomeCsv {
 
     private UUID opponent;
-    private Boolean home;
-    private Integer minutesPlayed;
-    private Integer goalsConceded;
-    private Integer goalsScored;
-    private Integer goalsAssisted;
+    private String home;
+    private Integer minutes;
+    private Integer conceded;
+    private Integer goals;
+    private Integer assists;
     private Integer saves;
 
 
@@ -27,15 +27,15 @@ public class PlayerEventOutcomeCsv {
 
         stringBuilder.append(home)
                 .append(",")
-                .append(minutesPlayed)
+                .append(minutes)
                 .append(",")
                 .append(saves)
                 .append(",")
-                .append(goalsConceded)
+                .append(conceded)
                 .append(",")
-                .append(goalsScored)
+                .append(goals)
                 .append(",")
-                .append(goalsAssisted);
+                .append(assists);
 
         return stringBuilder.toString();
     }
@@ -45,11 +45,11 @@ public class PlayerEventOutcomeCsv {
     public String getJson() {
         return "{\"opponent\": \"" + opponent + "\"," +
                 "\"home\": \"" + home + "\"," +
-                "\"minutesPlayed\": \"" + minutesPlayed + "\"," +
+                "\"minutes\": \"" + minutes + "\"," +
                 "\"saves\": \"" + saves + "\"," +
-                "\"goalsScored\": \"" + goalsScored + "\"," +
-                "\"goalsAssisted\": \"" + goalsAssisted + "\"," +
-                "\"goalsConceded\": \"" + goalsConceded + "\" }";
+                "\"goals\": \"" + goals + "\"," +
+                "\"assists\": \"" + assists + "\"," +
+                "\"conceded\": \"" + conceded + "\" }";
     }
 
 

@@ -24,6 +24,7 @@ public class PlayerFormController {
     @Autowired
     private CompetitionService competitionService;
 
+
     @RequestMapping(
             value = "team/{team}",
             method = RequestMethod.GET,
