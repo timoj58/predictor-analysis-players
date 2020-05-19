@@ -2,14 +2,17 @@ package com.timmytime.predictoranalysisplayers.response;
 
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class PlayerEventOutcomeCsv {
 
+    private UUID player;
     private UUID opponent;
     private String home;
     private Integer minutes;
@@ -19,13 +22,22 @@ public class PlayerEventOutcomeCsv {
     private Integer saves;
 
 
+    public PlayerEventOutcomeCsv(UUID player, UUID opponent, String home){
+        this.player = player;
+        this.opponent = opponent;
+        this.home = home;
+    }
+
     @Override
     public String toString() {
 
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(opponent).append(",");
+        stringBuilder.append(player).append(",");
 
-        stringBuilder.append(home)
+        stringBuilder
+                .append(opponent)
+                .append(",")
+                .append(home)
                 .append(",")
                 .append(minutes)
                 .append(",")
@@ -45,6 +57,7 @@ public class PlayerEventOutcomeCsv {
     public String getJson() {
         return "{\"opponent\": \"" + opponent + "\"," +
                 "\"home\": \"" + home + "\"," +
+                "\"player\": \"" + player + "\"," +
                 "\"minutes\": \"" + minutes + "\"," +
                 "\"saves\": \"" + saves + "\"," +
                 "\"goals\": \"" + goals + "\"," +

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -90,6 +91,20 @@ public class PlayerFormServiceImpl implements PlayerFormService {
         playersByCompetition.setPlayers(playerFormRepo.findByTeam(team).stream().map(PlayerForm::getId).collect(Collectors.toList()));
 
         return playersByCompetition;
+    }
+
+    @Override
+    public List<Player> getPlayers() {
+        List<Player> players = new ArrayList<>();
+
+        playerFormRepo.findAll()
+                .forEach(pf -> {
+                    Player player = new Player();
+                    player.setId(pf.getId());
+
+                    players.add(player);
+                });
+        return players;
     }
 
     @Override

@@ -2,7 +2,15 @@ package com.timmytime.predictoranalysisplayers.controller;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
+import com.timmytime.predictoranalysisplayers.model.redis.FantasyResponse;
+import com.timmytime.predictoranalysisplayers.service.TensorflowPredictionService;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +19,11 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/prediction/players/predict")
 public class TensorflowPredictController {
+
+    private static final Logger log = LoggerFactory.getLogger(TensorflowPredictController.class);
+
+    @Autowired
+    private TensorflowPredictionService tensorflowPredictionService;
 
     @RequestMapping(
             value = "receipt",
@@ -21,7 +34,43 @@ public class TensorflowPredictController {
             @RequestParam("id") UUID id,
             @RequestBody JsonNode results) {
 
-        //   tensorflowPredictService.receiveResult(id, new JSONObject(results.toString()));
+        log.info("received following result {}", results.toString());
+        tensorflowPredictionService.receiveReceipt(new JSONObject(results.toString()), id);
+    }
+
+
+    @RequestMapping(
+            value = "{player-id}",
+            method = RequestMethod.PUT)
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public void predict(@PathVariable("player-id") UUID playerId,
+                        @RequestParam("event") String event,
+                        @RequestParam("home") String home,
+                        @RequestParam("opponent") UUID opponent) {
+      tensorflowPredictionService.predict(playerId, FantasyEventTypes.valueOf(event), home, opponent);
+    }
+
+
+    @RequestMapping(
+            value = "game/{player-id}",
+            method = RequestMethod.PUT)
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public void predictions(
+            @PathVariable("player-id") UUID playerId,
+            @RequestParam("home") String home,
+            @RequestParam("opponent") UUID opponent) {
+
+        tensorflowPredictionService.predict(playerId, home, opponent);
+    }
+
+
+    @RequestMapping(
+            value = "{player-id}",
+            method = RequestMethod.GET)
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public ResponseEntity<FantasyResponse> predictions(
+            @PathVariable("player-id") UUID playerId) {
+        return ResponseEntity.ok(tensorflowPredictionService.getFantasyResponse(playerId));
     }
 
 }

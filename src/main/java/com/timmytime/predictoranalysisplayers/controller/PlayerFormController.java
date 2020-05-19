@@ -3,6 +3,7 @@ package com.timmytime.predictoranalysisplayers.controller;
 
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import com.timmytime.predictoranalysisplayers.response.PlayersByTeam;
+import com.timmytime.predictoranalysisplayers.response.data.Player;
 import com.timmytime.predictoranalysisplayers.service.CompetitionService;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
 import io.swagger.annotations.Api;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -26,11 +28,22 @@ public class PlayerFormController {
 
 
     @RequestMapping(
+            value = "",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public ResponseEntity<List<Player>> getAllPlayers(
+    ){
+        return ResponseEntity.ok(playerFormService.getPlayers());
+    }
+
+
+    @RequestMapping(
             value = "team/{team}",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")
-    public ResponseEntity<PlayersByTeam> getAllPlayers(
+    public ResponseEntity<PlayersByTeam> getAllTeamPlayers(
             @PathVariable("team") UUID team
 
     ){

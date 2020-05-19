@@ -28,15 +28,14 @@ public class TensorflowDataController {
 
 
     @RequestMapping(
-            value = "/player/{player}/{from-date}/{to-date}",
+            value = "/{from-date}/{to-date}",
             method = RequestMethod.GET)
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")
-    public void getCountryData(HttpServletResponse response,
-                               @PathVariable("player") UUID player,
-                               @PathVariable("from-date") String fromDate,
-                               @PathVariable("to-date") String toDate) {
+    public void getData(HttpServletResponse response,
+                        @PathVariable("from-date") String fromDate,
+                        @PathVariable("to-date") String toDate) {
 
-        List<PlayerEventOutcomeCsv> competitionEventOutcomeCsvs = tensorflowDataService.getPlayerCsv(player, fromDate, toDate);
+        List<PlayerEventOutcomeCsv> competitionEventOutcomeCsvs = tensorflowDataService.getPlayerCsv(fromDate, toDate);
         response.setContentType("text/plain"); //probably wrong to look up correct ie text/csv
         //  response.setHeader("Content-Disposition", String.format("attachment; filename=\"" + filename + "\""));
         if (!competitionEventOutcomeCsvs.isEmpty()) {

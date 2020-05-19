@@ -37,7 +37,7 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
     }
 
     @Override
-    public List<PlayerEventOutcomeCsv> getPlayerCsv(UUID player, String fromDate, String toDate) {
+    public List<PlayerEventOutcomeCsv> getPlayerCsv(String fromDate, String toDate) {
 
         log.info("getting player data");
 
@@ -45,7 +45,7 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
 
 
         //we always have, as tensorflow asks by player id..
-        PlayerForm playerForm = playerFormRepo.findById(player).get();
+        playerFormRepo.findAll().forEach(playerForm ->
 
         playerForm.getPlayerAppearances()
                 .stream()
@@ -54,13 +54,17 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
                 .sorted(Comparator.comparing(PlayerAppearance::getDate))
                 .forEach(playerAppearance -> {
 
-                    log.info("adding a record");
-
                     PlayerEventOutcomeCsv playerEventOutcomeCsv = new PlayerEventOutcomeCsv();
 
+                    playerEventOutcomeCsv.setPlayer(playerForm.getId());
                     playerEventOutcomeCsv.setOpponent(playerAppearance.getOpponent());
                     playerEventOutcomeCsv.setHome(playerAppearance.getHome() ? "home" : "away");
-                    playerEventOutcomeCsv.setMinutes(playerAppearance.getDuration());
+                    if(playerAppearance.getDuration().intValue() > 90 || playerAppearance.getDuration().intValue() < 0){
+                        log.info("player {} has {} minutes", playerForm.getLabel(), playerAppearance.getDuration());
+                        playerEventOutcomeCsv.setMinutes(90);
+                    }else {
+                        playerEventOutcomeCsv.setMinutes(playerAppearance.getDuration());
+                    }
 
                     //add in the other stats too....TBC.
                     playerEventOutcomeCsv.setAssists(
@@ -76,10 +80,16 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
                             playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.SAVES)).findFirst().orElse(new Event()).getValue());
 
                     playerEventOutcomeCsvs.add(playerEventOutcomeCsv);
-                });
+
+                    //note these are not in date order.  which is fine.  i guess.  they for the year.
 
 
-            log.info("completed player data");
+                }
+                )
+        );
+
+
+        log.info("completed player data");
 
         return playerEventOutcomeCsvs;
     }

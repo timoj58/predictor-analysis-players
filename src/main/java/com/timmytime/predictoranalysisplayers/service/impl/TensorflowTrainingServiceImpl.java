@@ -1,7 +1,6 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
-import com.timmytime.predictoranalysisplayers.callable.TrainPlayer;
-import com.timmytime.predictoranalysisplayers.enumerator.ApplicableFantasyLeagues;
+import com.timmytime.predictoranalysisplayers.callable.Train;
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
 import com.timmytime.predictoranalysisplayers.facade.TensorflowFacade;
@@ -43,7 +42,7 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
         this.tensorflowFacade = tensorflowFacade;
         this.receiptManager = receiptManager;
     }
-
+/*
     @Override
     public void train(UUID receipt) {
 
@@ -54,20 +53,22 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
         receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
 
 
-        Arrays.asList(FantasyEventTypes.values())
-                .stream()
-                .filter(f -> f.getPredict())
-                .forEach(fantasyEventTypes ->
                         Arrays.asList(ApplicableFantasyLeagues.values())
                                 .stream()
-                                .forEach(competition ->
-                                        teamFacade.getTeamsByCompetition(competition.name().toLowerCase())
+                                .filter(f -> competition.isEmpty() || f.name().toLowerCase().equals(competition.get()))
+                                .forEach(comp ->
+                                        teamFacade.getTeamsByCompetition(comp.name().toLowerCase())
                                                 .stream()
                                                 .forEach(team ->
                                                         playerFormRepo.findByTeam(team.getId())
                                                                 .stream()
-                                                                .forEach(player -> {
-                                                                    //only for GK do we do saves
+                                                                .forEach(player ->
+                                                                    Arrays.asList(FantasyEventTypes.values())
+                                                                            .stream()
+                                                                            .filter(f -> f.getPredict())
+                                                                            .forEach(fantasyEventTypes -> {
+
+                                                                                    //only for GK do we do saves
                                                                     //actually at this point need to create all the receipts...and use receipts to execute.
                                                                     if(fantasyEventTypes.equals(FantasyEventTypes.SAVES) && player.isGoalKeeper()
                                                                      || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
@@ -77,9 +78,37 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
                                                                         receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
                                                                     }
                                                                 })
+                                                                )
                                                 )
-                                )
-                );
+                                );
+
+        //now start the first receipt. (if we have)
+        if(!receipts.isEmpty()) {
+            receiptManager.sendReceipt.accept(receipts.get(0));
+        }
+
+    }
+    */
+
+    @Override
+    public void train(UUID receipt) {
+        //one large training set now...to review it.
+        List<Receipt> receipts = new ArrayList<>();
+
+        Map<Boolean, UUID> receiptIds = new HashMap<>();
+        receiptIds.put(Boolean.TRUE, receiptManager.generateId.get());
+        receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+
+
+        Arrays.asList(FantasyEventTypes.values())
+                .stream()
+                .filter(f -> f.getPredict())
+                .forEach(fantasyEventTypes -> {
+                        log.info("training {}",fantasyEventTypes.name());
+                        receipts.add(create(fantasyEventTypes, receiptIds.get(Boolean.TRUE), receiptIds.get(Boolean.FALSE)));
+                        receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
+                        receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                });
 
         //now start the first receipt. (if we have)
         if(!receipts.isEmpty()) {
@@ -89,25 +118,19 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
     }
 
     @Override
-    public void trainPlayer(UUID player, FantasyEventTypes fantasyEventTypes) {
-        tensorflowFacade.train(player, fantasyEventTypes, UUID.randomUUID());
-    }
-
-    @Override
     public void receiveReceipt(UUID receipt) {
         receiptManager.receiptReceived.accept(receipt);
     }
 
-    private Receipt create(UUID player, FantasyEventTypes fantasyEventTypes, UUID receiptId, UUID nextReceiptId){
+    private Receipt create(FantasyEventTypes fantasyEventTypes, UUID receiptId, UUID nextReceiptId){
 
 
         return receiptManager.generateReceipt.apply(
                 receiptId,
                 new ReceiptTask(
-                        new TrainPlayer(
+                        new Train(
                                 tensorflowFacade,
                                 fantasyEventTypes,
-                                player,
                                 receiptId
                         ),
                         nextReceiptId, timeout)

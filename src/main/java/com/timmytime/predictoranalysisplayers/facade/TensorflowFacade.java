@@ -1,8 +1,11 @@
 package com.timmytime.predictoranalysisplayers.facade;
 
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
+import com.timmytime.predictoranalysisplayers.response.PlayerEventOutcomeCsv;
 import com.timmytime.predictoranalysisplayers.util.rest.RestTemplateHelper;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +13,8 @@ import java.util.UUID;
 
 @Component
 public class TensorflowFacade extends RestTemplateHelper {
+
+    private static final Logger log = LoggerFactory.getLogger(TensorflowFacade.class);
 
     @Value("${ml.host}")
     private String mlHost;
@@ -48,24 +53,29 @@ public class TensorflowFacade extends RestTemplateHelper {
       so two train an predict...simply enough....
      */
 
-    public JSONObject train(UUID player, FantasyEventTypes fantasyEventTypes, UUID receipt){
+    public JSONObject train(FantasyEventTypes fantasyEventTypes, UUID receipt){
+
+        String url = mlHost + getUrl(fantasyEventTypes, Boolean.TRUE)
+                .replace("<player>", UUID.randomUUID().toString())
+                .replace("<receipt>", receipt.toString());
+
+        log.info("url is {}", url);
+
         return new JSONObject(
                 restTemplate.postForEntity(
-                        mlHost + getUrl(fantasyEventTypes, Boolean.TRUE)
-                                .replace("<receipt>", receipt.toString())
-                                .replace("<player>", player.toString()),
+                        url,
                         null,
                         String.class)
                         .getBody());
     }
 
-    public JSONObject predict(UUID player, FantasyEventTypes fantasyEventTypes, UUID receipt){
+    public JSONObject predict(UUID player, FantasyEventTypes fantasyEventTypes, PlayerEventOutcomeCsv playerEventOutcomeCsv, UUID receipt){
         return new JSONObject(
                 restTemplate.postForEntity(
                         mlHost + getUrl(fantasyEventTypes, Boolean.FALSE)
                                 .replace("<receipt>", receipt.toString())
                                 .replace("<player>", player.toString()),
-                        null,
+                        playerEventOutcomeCsv.getJson(),
                         String.class)
                         .getBody());
     }

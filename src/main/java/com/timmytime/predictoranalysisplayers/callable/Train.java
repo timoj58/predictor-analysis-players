@@ -8,28 +8,26 @@ import org.slf4j.LoggerFactory;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-public class TrainPlayer implements Callable {
+public class Train implements Callable {
 
-    private static final Logger log = LoggerFactory.getLogger(TrainPlayer.class);
+    private static final Logger log = LoggerFactory.getLogger(Train.class);
 
     private final TensorflowFacade tensorflowFacade;
 
     private final FantasyEventTypes fantasyEventTypes;
-    private final UUID player;
     private final UUID receipt;
 
-    public TrainPlayer(TensorflowFacade tensorflowFacade, FantasyEventTypes fantasyEventTypes, UUID player, UUID receipt) {
+    public Train(TensorflowFacade tensorflowFacade, FantasyEventTypes fantasyEventTypes, UUID receipt) {
         this.tensorflowFacade = tensorflowFacade;
         this.fantasyEventTypes = fantasyEventTypes;
         this.receipt = receipt;
-        this.player = player;
     }
 
     @Override
     public Object call() {
-        log.info("calling {} {}", player, fantasyEventTypes.name());
+        log.info("calling {}", fantasyEventTypes.name());
         try {
-            return tensorflowFacade.train(player, fantasyEventTypes, receipt);
+            return tensorflowFacade.train(fantasyEventTypes, receipt);
         } catch (Exception e) {
             log.error("training error", e);
             return null;
