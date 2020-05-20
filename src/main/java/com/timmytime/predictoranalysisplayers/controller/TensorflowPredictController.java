@@ -2,8 +2,8 @@ package com.timmytime.predictoranalysisplayers.controller;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
-import com.timmytime.predictoranalysisplayers.model.redis.FantasyResponse;
+import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
+import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
 import com.timmytime.predictoranalysisplayers.service.TensorflowPredictionService;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -24,6 +24,8 @@ public class TensorflowPredictController {
 
     @Autowired
     private TensorflowPredictionService tensorflowPredictionService;
+    @Autowired
+    private PlayerResponseService playerResponseService;
 
     @RequestMapping(
             value = "receipt",
@@ -39,17 +41,6 @@ public class TensorflowPredictController {
     }
 
 
-    @RequestMapping(
-            value = "{player-id}",
-            method = RequestMethod.PUT)
-    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
-    public void predict(@PathVariable("player-id") UUID playerId,
-                        @RequestParam("event") String event,
-                        @RequestParam("home") String home,
-                        @RequestParam("opponent") UUID opponent) {
-      tensorflowPredictionService.predict(playerId, FantasyEventTypes.valueOf(event), home, opponent);
-    }
-
 
     @RequestMapping(
             value = "game/{player-id}",
@@ -64,13 +55,14 @@ public class TensorflowPredictController {
     }
 
 
+    //note mainly for testing, will be in redis etc for the mobile app find gateway / lambda
     @RequestMapping(
             value = "{player-id}",
             method = RequestMethod.GET)
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")
-    public ResponseEntity<FantasyResponse> predictions(
+    public ResponseEntity<PlayerResponse> latestMatchResponse(
             @PathVariable("player-id") UUID playerId) {
-        return ResponseEntity.ok(tensorflowPredictionService.getFantasyResponse(playerId));
+        return ResponseEntity.ok(playerResponseService.get(playerId));
     }
 
 }

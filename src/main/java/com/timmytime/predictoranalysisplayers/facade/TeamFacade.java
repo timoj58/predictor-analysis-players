@@ -11,12 +11,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class TeamFacade {
 
     @Value("${data.host}")
     private String dataHost;
+
+    @Value("${team.url}")
+    private String teamUrl;
 
     @Value("${teams.url}")
     private String teamsUrl;
@@ -37,5 +42,17 @@ public class TeamFacade {
                 typeRef)
                 .getBody();
 
+    }
+
+    public Optional<Team> findById(UUID id){
+        return
+                Optional.ofNullable(
+                        restTemplate.exchange(
+                                dataHost + teamUrl.replace("{id}", id.toString()),
+                                HttpMethod.GET,
+                                new HttpEntity<>(null, authApiFacade.authenticate()),
+                                Team.class)
+                                .getBody()
+                );
     }
 }
