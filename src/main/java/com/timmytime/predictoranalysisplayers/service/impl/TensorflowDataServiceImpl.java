@@ -51,6 +51,7 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
                 .stream()
                 .filter(f -> f.getDate().equals(dateUtils.getDate.apply(fromDate)) || f.getDate().after(dateUtils.getDate.apply(fromDate)))
                 .filter(f -> f.getDate().before(dateUtils.getDate.apply(toDate)))
+                .filter(f -> !f.getStatMetrics().isEmpty())
                 .sorted(Comparator.comparing(PlayerAppearance::getDate))
                 .forEach(playerAppearance -> {
 
@@ -79,7 +80,14 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
                     playerEventOutcomeCsv.setSaves(
                             playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.SAVES)).findFirst().orElse(new Event()).getValue());
 
-                    playerEventOutcomeCsvs.add(playerEventOutcomeCsv);
+                    playerEventOutcomeCsv.setRed(
+                            playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.RED_CARD)).findFirst().orElse(new Event()).getValue());
+
+                    playerEventOutcomeCsv.setYellow(
+                            playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(FantasyEventTypes.YELLOW_CARD)).findFirst().orElse(new Event()).getValue());
+
+
+                            playerEventOutcomeCsvs.add(playerEventOutcomeCsv);
 
                     //note these are not in date order.  which is fine.  i guess.  they for the year.
 

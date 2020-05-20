@@ -20,6 +20,8 @@ public class PlayerEventOutcomeCsv {
     private Integer goals;
     private Integer assists;
     private Integer saves;
+    private Integer red;
+    private Integer yellow;
 
 
     public PlayerEventOutcomeCsv(UUID player, UUID opponent, String home){
@@ -47,7 +49,11 @@ public class PlayerEventOutcomeCsv {
                 .append(",")
                 .append(goals)
                 .append(",")
-                .append(assists);
+                .append(assists)
+                .append(",")
+                .append(red)
+                .append(",")
+                .append(yellow);
 
         return stringBuilder.toString();
     }
@@ -62,6 +68,8 @@ public class PlayerEventOutcomeCsv {
                 "\"saves\": \"" + saves + "\"," +
                 "\"goals\": \"" + goals + "\"," +
                 "\"assists\": \"" + assists + "\"," +
+                "\"red\": \"" + red + "\"," +
+                "\"yellow\": \"" + yellow + "\"," +
                 "\"conceded\": \"" + conceded + "\" }";
     }
 

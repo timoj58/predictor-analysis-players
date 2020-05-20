@@ -67,9 +67,7 @@ public class PlayerFormController {
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")
     public void load(
         ){
-
         competitionService.load(UUID.randomUUID());;
-
         return;
     }
 

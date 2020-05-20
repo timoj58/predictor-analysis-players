@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 @Service("competitionService")
 public class CompetitionServiceImpl implements CompetitionService {
@@ -30,6 +31,8 @@ public class CompetitionServiceImpl implements CompetitionService {
     private final PlayerFacade playerFacade;
     private final PlayerFormService playerFormService;
     private final ReceiptManager receiptManager;
+
+    private Map<String, Boolean> loadingStatus = new HashMap<>();
 
     @Autowired
     public CompetitionServiceImpl(
@@ -45,83 +48,78 @@ public class CompetitionServiceImpl implements CompetitionService {
     @Override
     public void load(UUID receiptId) {
 
+        /*
+          this is really slow. needs refactoring similar to teams cache loading.
+          only using 10% of cpu per league too.
+         */
+
         playerFormService.clear();
+        loadingStatus.clear();
 
-        List<Receipt> receipts = new ArrayList<>();
-
-        Map<Boolean, UUID> receiptIds = new HashMap<>();
-
-        receiptIds.put(Boolean.TRUE, receiptManager.generateId.get());
-        receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
 
         //this all needs to be receipt controlled as well now.....
         Arrays.asList(ApplicableFantasyLeagues.values())
                 .stream()
                 .forEach(competition -> {
-                    receipts.add(
-                            load(competition.name().toLowerCase(), receiptIds.get(Boolean.TRUE), receiptIds.get(Boolean.FALSE))
-                    );
+                            log.info("loading {}", competition);
+                            loadingStatus.put(competition.name(), Boolean.TRUE);
 
-                    receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
-                    receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                            //note this is very slow one at atime.  need a trigger receipt, than run them all in parallel
+                            CompletableFuture.runAsync(() ->
+                                    playerFacade.getPlayersByCompetition(competition.name().toLowerCase())
+                                            .stream()
+                                            .filter(f -> f.getLastAppearance().isAfter(LocalDate.now().minusYears(2L))) //limit player form to last two years
+                                            .forEach(player -> playerFormService.load(player))
+                            ).thenRun(() -> {
+                                log.info("loaded {}", competition);
+                                loadingStatus.put(competition.name(), Boolean.FALSE);
+                            });
                 }
                 );
 
-        //now need to link the final receipt to a completion receipt.
-        receipts.add(
-                receiptManager.generateReceipt.apply(
-                        receiptIds.get(Boolean.TRUE),
-                        new ReceiptTask(new Completion(receiptManager, receiptId),
-                        receiptId, timeout)
-                )
-        );
-
-        receiptManager.sendReceipt.accept(receipts.get(0));
-    }
-
-    private Receipt load(String competition, UUID receiptId, UUID nextReceiptId) {
-
-        return receiptManager.generateReceipt.apply(
-                receiptId,
-                new ReceiptTask(
-                        new LoadCompetition(competition, receiptId)
-                        , nextReceiptId, timeout
-                )
-        );
-
+        new CompetitionWatcher(() -> loadingStatus.values().stream().allMatch(f -> f == Boolean.FALSE), receiptId).start();
 
     }
 
 
+    private class CompetitionWatcher implements Runnable {
 
-    public class LoadCompetition implements Callable{
+        private Thread worker;
+        private UUID receipt;
+        private Supplier<Boolean> supplier;
 
-        private final String competition;
-        private final UUID receiptId;
 
-        public LoadCompetition(
-                String competition,
-                UUID receiptId
-        ){
-            this.competition = competition;
-            this.receiptId = receiptId;
+        public CompetitionWatcher(Supplier<Boolean> supplier, UUID receipt) {
+            this.receipt = receipt;
+            this.supplier = supplier;
+            worker = new Thread(this);
+        }
+
+        public void start() {
+            worker.start();
         }
 
         @Override
-        public Object call() throws Exception {
-            log.info("loading {}", competition);
+        public void run() {
 
-            CompletableFuture.runAsync(() ->
-                    playerFacade.getPlayersByCompetition(competition)
-                            .stream()
-                            .filter(f -> f.getLastAppearance().isAfter(LocalDate.now().minusYears(2L))) //limit player form to last two years
-                            .forEach(player -> playerFormService.load(player))
-            ).thenRun(() -> {
-                log.info("loaded {}", competition);
-                receiptManager.receiptReceived.accept(receiptId);
-            });
+            while (!supplier.get()) {
+                try {
+                    waitFor(60000L);
+                } catch (InterruptedException e) {
+                    log.error("competitions watcher", e);
+                }
+            }
 
-            return null;
+            log.info("competitions finished loading");
+
+            receiptManager.receiptReceived.accept(receipt);
         }
+
+        private synchronized void waitFor(long timeout) throws InterruptedException {
+            log.info("waiting for competitions...");
+            wait(timeout);
+        }
+
     }
+
 }

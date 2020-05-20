@@ -12,8 +12,8 @@ public enum FantasyEventTypes {
     PENALTY_SAVED(Boolean.FALSE),
     PENALTY_MISSED(Boolean.FALSE),
     MINUTES(Boolean.TRUE),
-    RED_CARD(Boolean.FALSE),
-    YELLOW_CARD(Boolean.FALSE),
+    RED_CARD(Boolean.TRUE),
+    YELLOW_CARD(Boolean.TRUE),
     GOALS_CONCEDED(Boolean.TRUE),
     SAVES(Boolean.TRUE),
     UNKNOWN(Boolean.FALSE);
