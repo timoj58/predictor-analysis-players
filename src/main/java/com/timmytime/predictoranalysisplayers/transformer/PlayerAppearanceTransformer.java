@@ -24,6 +24,8 @@ public class PlayerAppearanceTransformer {
 
     private static final Logger log = LoggerFactory.getLogger(PlayerAppearanceTransformer.class);
 
+    private final DateUtils dateUtils = new DateUtils();
+
     @Autowired
     private StatMetricFacade statMetricFacade;
 
@@ -50,7 +52,7 @@ public class PlayerAppearanceTransformer {
             opponent = match.getHomeId();
         }
 
-        PlayerAppearance playerAppearance = new PlayerAppearance(match, DateUtils.convert.apply(match.getDate()), home, playerTeam, opponent);
+        PlayerAppearance playerAppearance = new PlayerAppearance(match, dateUtils.convert.apply(match.getDate()), home, playerTeam, opponent);
        //more to fix..for stats etc...tomorrow task.
 
         //not working out pro-rated data (goals conceded / saves) too messy (given red cards minutes wrong too).

@@ -66,14 +66,9 @@ public class PlayerFormController {
             method = RequestMethod.PUT)
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")
     public void load(
-            @RequestParam(required = false, value = "competition") String competition
         ){
 
-        if(competition == null){
-            competitionService.load();;
-        }else{
-            competitionService.load(competition);
-        }
+        competitionService.load(UUID.randomUUID());;
 
         return;
     }

@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 public class DateUtils {
 
-    public static Function<LocalDateTime, Date> convert = date ->
+    public  Function<LocalDateTime, Date> convert = date ->
             Date.from(date.atZone(ZoneId.systemDefault()).toInstant());
 
     public Function<String, Date> getDate = fromDate ->

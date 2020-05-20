@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
+import com.timmytime.predictoranalysisplayers.callable.Completion;
 import com.timmytime.predictoranalysisplayers.callable.Train;
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
@@ -42,53 +43,6 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
         this.tensorflowFacade = tensorflowFacade;
         this.receiptManager = receiptManager;
     }
-/*
-    @Override
-    public void train(UUID receipt) {
-
-        List<Receipt> receipts = new ArrayList<>();
-
-        Map<Boolean, UUID> receiptIds = new HashMap<>();
-        receiptIds.put(Boolean.TRUE, receiptManager.generateId.get());
-        receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
-
-
-                        Arrays.asList(ApplicableFantasyLeagues.values())
-                                .stream()
-                                .filter(f -> competition.isEmpty() || f.name().toLowerCase().equals(competition.get()))
-                                .forEach(comp ->
-                                        teamFacade.getTeamsByCompetition(comp.name().toLowerCase())
-                                                .stream()
-                                                .forEach(team ->
-                                                        playerFormRepo.findByTeam(team.getId())
-                                                                .stream()
-                                                                .forEach(player ->
-                                                                    Arrays.asList(FantasyEventTypes.values())
-                                                                            .stream()
-                                                                            .filter(f -> f.getPredict())
-                                                                            .forEach(fantasyEventTypes -> {
-
-                                                                                    //only for GK do we do saves
-                                                                    //actually at this point need to create all the receipts...and use receipts to execute.
-                                                                    if(fantasyEventTypes.equals(FantasyEventTypes.SAVES) && player.isGoalKeeper()
-                                                                     || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
-                                                                        log.info("training {} {} - {}", player.getLabel(), team.getLabel(),fantasyEventTypes.name());
-                                                                        receipts.add(create(player.getId(), fantasyEventTypes, receiptIds.get(Boolean.TRUE), receiptIds.get(Boolean.FALSE)));
-                                                                        receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
-                                                                        receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
-                                                                    }
-                                                                })
-                                                                )
-                                                )
-                                );
-
-        //now start the first receipt. (if we have)
-        if(!receipts.isEmpty()) {
-            receiptManager.sendReceipt.accept(receipts.get(0));
-        }
-
-    }
-    */
 
     @Override
     public void train(UUID receipt) {
@@ -109,6 +63,16 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
                         receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
                         receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
                 });
+
+
+        //now need to link the final receipt to a completion receipt.
+        receipts.add(
+                receiptManager.generateReceipt.apply(
+                        receiptIds.get(Boolean.TRUE),
+                        new ReceiptTask(new Completion(receiptManager, receipt),
+                                receipt, timeout)
+                )
+        );
 
         //now start the first receipt. (if we have)
         if(!receipts.isEmpty()) {
@@ -137,5 +101,7 @@ public class TensorflowTrainingServiceImpl implements TensorflowTrainingService 
         );
 
     };
+
+
 
 }

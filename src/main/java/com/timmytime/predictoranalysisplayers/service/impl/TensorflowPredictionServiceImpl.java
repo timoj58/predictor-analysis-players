@@ -3,9 +3,11 @@ package com.timmytime.predictoranalysisplayers.service.impl;
 import com.timmytime.predictoranalysisplayers.callable.Predict;
 import com.timmytime.predictoranalysisplayers.enumerator.ApplicableFantasyLeagues;
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
+import com.timmytime.predictoranalysisplayers.facade.EventFacade;
 import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
 import com.timmytime.predictoranalysisplayers.facade.TensorflowFacade;
 import com.timmytime.predictoranalysisplayers.model.mongo.FantasyOutcome;
+import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import com.timmytime.predictoranalysisplayers.receipt.Receipt;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptTask;
@@ -21,6 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -33,6 +38,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     private Long timeout;
 
     private final TeamFacade teamFacade;
+    private final EventFacade eventFacade;
     private final PlayerFormRepo playerFormRepo;
     private final TensorflowFacade tensorflowFacade;
     private final ReceiptManager receiptManager;
@@ -47,12 +53,14 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     @Autowired
     public TensorflowPredictionServiceImpl(
              TeamFacade teamFacade,
+             EventFacade eventFacade,
              PlayerFormRepo playerFormRepo,
              TensorflowFacade tensorflowFacade,
              ReceiptManager receiptManager,
              FantasyOutcomeRepo fantasyOutcomeRepo
     ){
         this.teamFacade = teamFacade;
+        this.eventFacade = eventFacade;
         this.playerFormRepo = playerFormRepo;
         this.tensorflowFacade = tensorflowFacade;
         this.receiptManager = receiptManager;
@@ -63,23 +71,82 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     public void predict(UUID receipt) {
 
         receiptMap.clear();
+        List<Receipt> receipts = new ArrayList<>();
 
+        Map<Boolean, UUID> receiptIds = new HashMap<>();
+        receiptIds.put(Boolean.TRUE, receiptManager.generateId.get());
+        receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+
+        /*
+          this is all wrong now.  so
+
+          driven from events only....
+         */
         Arrays.asList(ApplicableFantasyLeagues.values())
                 .stream()
                 .forEach(competition ->
-                        teamFacade.getTeamsByCompetition(competition.name().toLowerCase())
-                                .stream()
-                                .forEach(team ->
-                                        playerFormRepo.findByTeam(team.getId())
-                                                .stream()
-                                                .forEach(player -> {
-                                                    log.info("predicting {}", player.getLabel());
-                                                   // tensorflowFacade.predict(player.getId(), null);
+                        eventFacade.upcomingEvents(competition.getCountry(), competition.name().toLowerCase())
+                        .stream()
+                        .forEach(response ->
+                                response.getUpcomingEventResponses()
+                        .stream()
+                        .forEach(event -> {
 
-                                                    //build receipts the future will do prediction, and store to database
-                                                })
-                                )
+                            List<PlayerForm> homePlayers = playerFormRepo.findByTeam(event.getHome().getId());
+                            List<PlayerForm> awayPlayers = playerFormRepo.findByTeam(event.getAway().getId());
+
+                            Arrays.asList(FantasyEventTypes.values())
+                                    .stream()
+                                    .filter(f -> f.getPredict())
+                                    .forEach(fantasyEventTypes -> {
+                                        homePlayers.stream()
+                                                .forEach(homePlayer -> {
+                                                    receipts.add(
+                                                            create(homePlayer.getId(), new PlayerEventOutcomeCsv(
+                                                                    homePlayer.getId(),
+                                                                    event.getAway().getId(),
+                                                                    "home"),
+                                                                    fantasyEventTypes,
+                                                                    event.getEventDate().getTime(),
+                                                                    receiptIds.get(Boolean.TRUE),
+                                                                    receiptIds.get(Boolean.FALSE))
+                                                    );
+                                                    receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
+                                                    receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                });
+
+                                        awayPlayers.stream()
+                                                .forEach(awayPlayer -> {
+                                                    receipts.add(
+                                                            create(awayPlayer.getId(), new PlayerEventOutcomeCsv(
+                                                                    awayPlayer.getId(),
+                                                                    event.getHome().getId(),
+                                                                    "away"),
+                                                                    fantasyEventTypes,
+                                                                    event.getEventDate().getTime(),
+                                                                    receiptIds.get(Boolean.TRUE),
+                                                                    receiptIds.get(Boolean.FALSE))
+                                                    );
+                                                    receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
+                                                    receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                });
+                                    });
+
+                        }))
                 );
+
+
+        receipts.add(
+                receiptManager.generateReceipt.apply(
+                        receiptIds.get(Boolean.TRUE),
+                        new ReceiptTask(new SaveEvents(), null, timeout)
+                )
+        );
+
+
+        if(!receipts.isEmpty()){
+            receiptManager.sendReceipt.accept(receipts.get(0));
+        }
 
     }
 
@@ -100,15 +167,15 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
         List<Receipt> receipts = new ArrayList<>();
 
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS, goalsReceipt, assistsReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.ASSISTS, assistsReceipt, minutesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.MINUTES, minutesReceipt, concededReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS_CONCEDED, concededReceipt, savesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES, savesReceipt, completed));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS, System.currentTimeMillis(), goalsReceipt, assistsReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.ASSISTS, System.currentTimeMillis(), assistsReceipt, minutesReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.MINUTES, System.currentTimeMillis(), minutesReceipt, concededReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS_CONCEDED, System.currentTimeMillis(), concededReceipt, savesReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES, System.currentTimeMillis(), savesReceipt, completed));
         receipts.add(
                 receiptManager.generateReceipt.apply(
                         completed,
-                        new ReceiptTask(new Completed(), null, timeout)
+                        new ReceiptTask(new SaveEvents(), null, timeout)
                        )
         );
 
@@ -118,19 +185,19 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     @Override
     public void receiveReceipt(JSONObject data, UUID receipt) {
 
-        this.receiptMap.get(receipt).put("result",predictionResultUtils.normalize.apply(data));
-        //could write it away now (in reality)....given size of map
+        this.receiptMap.get(receipt).put("result", predictionResultUtils.normalize.apply(data));
         receiptManager.receiptReceived.accept(receipt);
     }
 
 
-    private Receipt create(UUID player, PlayerEventOutcomeCsv data, FantasyEventTypes fantasyEventTypes, UUID receiptId, UUID nextReceiptId){
+    private Receipt create(UUID player, PlayerEventOutcomeCsv data, FantasyEventTypes fantasyEventTypes, Long date, UUID receiptId, UUID nextReceiptId){
 
         receiptMap.put(receiptId,
                 new JSONObject()
                         .put("opponent", data.getOpponent())
                         .put("player", player)
                         .put("home", data.getHome())
+                        .put("date", date)
                         .put("event", fantasyEventTypes.name())
         );
 
@@ -151,12 +218,14 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     };
 
 
-    public class Completed implements Callable{
+    public class SaveEvents implements Callable{
 
         @Override
         public Object call() {
 
             try {
+
+                log.info("saving fantasy predictions");
 
                 receiptMap.values().stream()
                         .forEach(result -> {
@@ -166,7 +235,8 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
                             fantasyOutcome.setOpponent(UUID.fromString(result.get("opponent").toString()));
                             fantasyOutcome.setPlayerId(UUID.fromString(result.get("player").toString()));
                             fantasyOutcome.setFantasyEventType(FantasyEventTypes.valueOf(result.getString("event")));
-                            fantasyOutcome.setPrediction(result.get("result").toString());
+                            fantasyOutcome.setPrediction(result.toString());
+                            fantasyOutcome.setEventDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(result.getLong("date")), ZoneId.systemDefault()));
 
                             fantasyOutcomeRepo.save(fantasyOutcome);
                         });

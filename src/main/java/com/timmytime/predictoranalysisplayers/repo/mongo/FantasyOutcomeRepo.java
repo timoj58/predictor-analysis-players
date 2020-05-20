@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface FantasyOutcomeRepo extends MongoRepository<FantasyOutcome, UUID> {
 
     List<FantasyOutcome> findByPlayerIdAndSuccessNull(UUID id);
+    List<FantasyOutcome> findBySuccessNull();
+
 }

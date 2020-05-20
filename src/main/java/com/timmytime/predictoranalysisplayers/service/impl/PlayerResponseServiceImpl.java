@@ -8,6 +8,7 @@ import com.timmytime.predictoranalysisplayers.model.redis.PlayerAppearance;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import com.timmytime.predictoranalysisplayers.repo.mongo.FantasyOutcomeRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
+import com.timmytime.predictoranalysisplayers.response.FantasyResponse;
 import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
 import com.timmytime.predictoranalysisplayers.response.data.StatMetric;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
@@ -20,6 +21,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import static java.util.stream.Collectors.groupingBy;
 
 @Service("playerResponseService")
 public class PlayerResponseServiceImpl implements PlayerResponseService {
@@ -75,13 +78,22 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
         playerResponse.setYellowCards(getTotals.apply(playerForm.getPlayerAppearances(), FantasyEventTypes.YELLOW_CARD));
 
         if(!fantasyOutcomes.isEmpty()) {
-            playerResponse.setFantasyResponse(fantasyResponseTransformer.transform.apply(fantasyOutcomes));
 
-            UUID opponent = fantasyOutcomes.stream().map(m -> m.getOpponent()).distinct().findFirst().get();
-            Boolean isHome = fantasyOutcomes.stream().map(m -> m.getHome()).distinct().findFirst().get().contentEquals("home");
+            fantasyOutcomes.stream().collect(groupingBy(FantasyOutcome::getOpponent))
+                    .values()
+                    .stream()
+                    .forEach(match -> {
+                        FantasyResponse fantasyResponse = fantasyResponseTransformer.transform.apply(match);
 
-            playerResponse.getFantasyResponse().setOpponent(teamFacade.findById(opponent).get().getLabel());
-            playerResponse.getFantasyResponse().setIsHome(isHome);
+                        UUID opponent = match.stream().map(m -> m.getOpponent()).distinct().findFirst().get();
+                        Boolean isHome = match.stream().map(m -> m.getHome()).distinct().findFirst().get().contentEquals("home");
+
+                        fantasyResponse.setOpponent(teamFacade.findById(opponent).get().getLabel());
+                        fantasyResponse.setIsHome(isHome);
+
+                        playerResponse.getFantasyResponse().add(fantasyResponse);
+                    });
+
 
         }
 

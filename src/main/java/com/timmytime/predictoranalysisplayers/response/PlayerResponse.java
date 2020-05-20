@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -20,6 +22,6 @@ public class PlayerResponse {
     private Integer redCards;
     private Integer yellowCards;
 
-    private FantasyResponse fantasyResponse;
+    private List<FantasyResponse> fantasyResponse = new ArrayList<>();
 
 }
