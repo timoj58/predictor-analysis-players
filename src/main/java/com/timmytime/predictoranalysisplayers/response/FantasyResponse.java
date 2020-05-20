@@ -20,6 +20,8 @@ public class FantasyResponse {
     private Double saves;
     Map<Integer, Double> goals = new HashMap<>();
     Map<Integer, Double> assists = new HashMap<>();
+    Map<Integer, Double> redCards = new HashMap<>();
+    Map<Integer, Double> yellowCards = new HashMap<>();
 
 
 }

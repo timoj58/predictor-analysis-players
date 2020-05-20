@@ -49,29 +49,36 @@ public class PlayerFormServiceImpl implements PlayerFormService {
     }
 
     @Override
-    public void load(Player player) {
+    public void load(Player player, Boolean firstTime) {
 
-        try {
+            try {
 
             PlayerForm playerForm = new PlayerForm(player);
 
-            List<MatchResponse> matches = matchFacade.findByPlayer(player.getId());
-            matches.stream()
-                    .forEach(match -> {
-                        if (match.getPlayerTeam().equals(player.getLatestTeam())
-                                || (!match.getPlayerTeam().equals(player.getLatestTeam())
-                                && !filterByMonth.apply(matches, match.getDate().toLocalDate())
-                                .stream()
-                                .anyMatch(f -> f.getPlayerTeam().equals(player.getLatestTeam())))
-                        ) {
+                //due to machine learning, we can not add new players without retraining the model.
+                if(firstTime || playerFormRepo.findById(playerForm.getId()).isPresent()) {
 
-                            playerForm.getPlayerAppearances().add(
-                                    playerAppearanceTransformer.transform.apply(player.getId(), match)
-                            );
-                        }
-                    });
+                    List<MatchResponse> matches = matchFacade.findByPlayer(player.getId());
+                    matches.stream()
+                            .forEach(match -> {
+                                if (match.getPlayerTeam().equals(player.getLatestTeam())
+                                        || (!match.getPlayerTeam().equals(player.getLatestTeam())
+                                        && !filterByMonth.apply(matches, match.getDate().toLocalDate())
+                                        .stream()
+                                        .anyMatch(f -> f.getPlayerTeam().equals(player.getLatestTeam())))
+                                ) {
 
-            playerFormRepo.save(playerForm);
+                                    playerForm.getPlayerAppearances().add(
+                                            playerAppearanceTransformer.transform.apply(player.getId(), match)
+                                    );
+                                }
+                            });
+                    playerFormRepo.save(playerForm);
+                }
+              else {
+                  //note: models will need to be retrained due to this, as per the leagues training.  as new records added need to put in
+                  log.info("new player skipped - this needs to be logged in mongo longterm,  and retrain once a sufficient number");
+              }
         } catch (Exception e) {
             log.error("player form", e);
         }
@@ -110,6 +117,11 @@ public class PlayerFormServiceImpl implements PlayerFormService {
     @Override
     public void clear() {
         playerFormRepo.deleteAll();
+    }
+
+    @Override
+    public Boolean firstTime() {
+        return playerFormRepo.count() == 0;
     }
 
 }

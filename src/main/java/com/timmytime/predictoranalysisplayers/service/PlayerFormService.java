@@ -10,9 +10,10 @@ import java.util.UUID;
 
 public interface PlayerFormService {
 
-    void load(Player player);
+    void load(Player player, Boolean firstTime);
     PlayerForm get(UUID id);
     PlayersByTeam getPlayers(UUID team);
     List<Player> getPlayers();
     void clear();
+    Boolean firstTime();
 }

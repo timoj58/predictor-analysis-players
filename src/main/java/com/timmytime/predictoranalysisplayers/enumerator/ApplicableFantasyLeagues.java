@@ -11,12 +11,8 @@ public enum ApplicableFantasyLeagues {
     GERMAN_2("german"),
     FRANCE_1("france"),
     FRANCE_2("france"),
-    SCOTLAND_1("scotland"),
     TURKEY_1("turkey"),
-    PORTUGAL_1("portugal"),
-    HOLLAND_1("holland"),
-    BELGIUM_1("belgium"),
-    RUSSIA_1("russia");
+    PORTUGAL_1("portugal");
 
     public String getCountry() {
         return country;

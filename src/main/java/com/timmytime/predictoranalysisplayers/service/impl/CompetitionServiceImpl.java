@@ -48,13 +48,8 @@ public class CompetitionServiceImpl implements CompetitionService {
     @Override
     public void load(UUID receiptId) {
 
-        /*
-          this is really slow. needs refactoring similar to teams cache loading.
-          only using 10% of cpu per league too.
-         */
-
-        playerFormService.clear();
         loadingStatus.clear();
+        Boolean firstTime = playerFormService.firstTime();
 
 
         //this all needs to be receipt controlled as well now.....
@@ -64,12 +59,11 @@ public class CompetitionServiceImpl implements CompetitionService {
                             log.info("loading {}", competition);
                             loadingStatus.put(competition.name(), Boolean.TRUE);
 
-                            //note this is very slow one at atime.  need a trigger receipt, than run them all in parallel
                             CompletableFuture.runAsync(() ->
                                     playerFacade.getPlayersByCompetition(competition.name().toLowerCase())
                                             .stream()
                                             .filter(f -> f.getLastAppearance().isAfter(LocalDate.now().minusYears(2L))) //limit player form to last two years
-                                            .forEach(player -> playerFormService.load(player))
+                                            .forEach(player -> playerFormService.load(player, firstTime))
                             ).thenRun(() -> {
                                 log.info("loaded {}", competition);
                                 loadingStatus.put(competition.name(), Boolean.FALSE);
@@ -104,7 +98,7 @@ public class CompetitionServiceImpl implements CompetitionService {
 
             while (!supplier.get()) {
                 try {
-                    waitFor(60000L);
+                    waitFor(90000L);
                 } catch (InterruptedException e) {
                     log.error("competitions watcher", e);
                 }
