@@ -42,7 +42,7 @@ public class PredictionResultUtils {
 
             JSONObject r = results.getJSONObject(i);
 
-            if(r.getInt("key") != 0 && r.getDouble("score") > 0.0){
+            if(r.getInt("key") != 0 && r.getDouble("score") >= 1.0){
                 result.put(r.getInt("key"), r.getDouble("score"));
             }
         }
