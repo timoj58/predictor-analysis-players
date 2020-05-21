@@ -34,6 +34,12 @@ public class TensorflowFacade extends RestTemplateHelper {
     @Value("${ml.train.saves.url}")
     private String trainSavesUrl;
 
+    @Value("${ml.train.red.url}")
+    private String trainRedUrl;
+
+    @Value("${ml.train.yellow.url}")
+    private String trainYellowUrl;
+
     @Value("${ml.predict.goals.url}")
     private String predictGoalsUrl;
 
@@ -49,6 +55,11 @@ public class TensorflowFacade extends RestTemplateHelper {
     @Value("${ml.predict.saves.url}")
     private String predictSavesUrl;
 
+    @Value("${ml.predict.red.url}")
+    private String predictRedUrl;
+
+    @Value("${ml.predict.yellow.url}")
+    private String predictYellowUrl;
     /*
       so two train an predict...simply enough....
      */
@@ -92,6 +103,10 @@ public class TensorflowFacade extends RestTemplateHelper {
                 return trainingMode? trainMinutesUrl : predictMinutesUrl;
             case GOALS_CONCEDED:
                 return trainingMode? trainConcededUrl : predictConcededUrl;
+            case RED_CARD:
+                return trainingMode? trainRedUrl : predictRedUrl;
+            case YELLOW_CARD:
+                return trainingMode? trainYellowUrl : predictYellowUrl;
         }
 
         return "";

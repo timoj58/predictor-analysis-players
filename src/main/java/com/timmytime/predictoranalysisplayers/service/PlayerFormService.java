@@ -16,4 +16,5 @@ public interface PlayerFormService {
     List<Player> getPlayers();
     void clear();
     Boolean firstTime();
+    void saveActiveByYear();
 }

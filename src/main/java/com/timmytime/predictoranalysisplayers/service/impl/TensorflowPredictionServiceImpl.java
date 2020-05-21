@@ -162,6 +162,8 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         UUID minutesReceipt = receiptManager.generateId.get();
         UUID concededReceipt = receiptManager.generateId.get();
         UUID savesReceipt = receiptManager.generateId.get();
+        UUID redReceipt = receiptManager.generateId.get();
+        UUID yellowReceipt = receiptManager.generateId.get();
         UUID completed = receiptManager.generateId.get();
 
 
@@ -171,7 +173,9 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.ASSISTS, System.currentTimeMillis(), assistsReceipt, minutesReceipt));
         receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.MINUTES, System.currentTimeMillis(), minutesReceipt, concededReceipt));
         receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS_CONCEDED, System.currentTimeMillis(), concededReceipt, savesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES, System.currentTimeMillis(), savesReceipt, completed));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES, System.currentTimeMillis(), savesReceipt, redReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.RED_CARD, System.currentTimeMillis(), redReceipt, yellowReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.YELLOW_CARD, System.currentTimeMillis(), yellowReceipt, completed));
         receipts.add(
                 receiptManager.generateReceipt.apply(
                         completed,

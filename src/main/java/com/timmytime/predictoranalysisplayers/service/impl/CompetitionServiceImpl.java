@@ -106,6 +106,7 @@ public class CompetitionServiceImpl implements CompetitionService {
 
             log.info("competitions finished loading");
 
+            playerFormService.saveActiveByYear();
             receiptManager.receiptReceived.accept(receipt);
         }
 

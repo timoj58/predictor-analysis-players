@@ -3,6 +3,7 @@ package com.timmytime.predictoranalysisplayers.service.impl;
 import com.timmytime.predictoranalysisplayers.model.mongo.FantasyOutcome;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerAppearance;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
+import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.repo.mongo.FantasyOutcomeRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.service.ValidationService;
@@ -25,25 +26,29 @@ public class ValidationServiceImpl implements ValidationService {
 
     private final PlayerFormRepo playerFormRepo;
     private final FantasyOutcomeRepo fantasyOutcomeRepo;
+    private final ReceiptManager receiptManager;
 
     private final DateUtils dateUtils = new DateUtils();
 
     @Autowired
     public ValidationServiceImpl(
             PlayerFormRepo playerFormRepo,
-            FantasyOutcomeRepo fantasyOutcomeRepo
+            FantasyOutcomeRepo fantasyOutcomeRepo,
+            ReceiptManager receiptManager
     ){
         this.playerFormRepo = playerFormRepo;
         this.fantasyOutcomeRepo = fantasyOutcomeRepo;
+        this.receiptManager = receiptManager;
     }
 
     @Override
     public void validate(UUID receiptId) {
-
+        //just skipping it for now.
+        receiptManager.receiptReceived.accept(receiptId);
         //again this is wrong.  needs to be receipt driven.  i think for now.  just turn off validation.
         //its the final case.
 
-       Map<UUID, List<FantasyOutcome>>
+       /*Map<UUID, List<FantasyOutcome>>
         playerEvents = fantasyOutcomeRepo.findBySuccessNull()
                 .stream()
                 .collect(groupingBy(FantasyOutcome::getPlayerId));
@@ -85,6 +90,6 @@ public class ValidationServiceImpl implements ValidationService {
 
 
                });
-
+  */
     }
 }

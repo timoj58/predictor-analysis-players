@@ -3,24 +3,27 @@ package com.timmytime.predictoranalysisplayers.service.impl;
 
 import com.timmytime.predictoranalysisplayers.exception.PlayerNotOnFile;
 import com.timmytime.predictoranalysisplayers.facade.MatchFacade;
+import com.timmytime.predictoranalysisplayers.model.redis.ActivePlayersByYear;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
+import com.timmytime.predictoranalysisplayers.repo.redis.ActivePlayersByYearRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.response.PlayersByTeam;
 import com.timmytime.predictoranalysisplayers.response.data.MatchResponse;
 import com.timmytime.predictoranalysisplayers.response.data.Player;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
 import com.timmytime.predictoranalysisplayers.transformer.PlayerAppearanceTransformer;
+import com.timmytime.predictoranalysisplayers.util.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service("playerFormService")
 public class PlayerFormServiceImpl implements PlayerFormService {
@@ -29,7 +32,11 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
     private final MatchFacade matchFacade;
     private final PlayerFormRepo playerFormRepo;
+    private final ActivePlayersByYearRepo activePlayersByYearRepo;
     private final PlayerAppearanceTransformer playerAppearanceTransformer;
+    private final DateUtils dateUtils = new DateUtils();
+
+    private Map<Integer, Set<UUID>> activeMap = new HashMap<>();
 
     BiFunction<List<MatchResponse>, LocalDate, List<MatchResponse>> filterByMonth = (matches, date) ->
             matches
@@ -41,11 +48,13 @@ public class PlayerFormServiceImpl implements PlayerFormService {
     public PlayerFormServiceImpl(
             MatchFacade matchFacade,
             PlayerFormRepo playerFormRepo,
-            PlayerAppearanceTransformer playerAppearanceTransformer
+            PlayerAppearanceTransformer playerAppearanceTransformer,
+            ActivePlayersByYearRepo activePlayersByYearRepo
     ) {
         this.matchFacade = matchFacade;
         this.playerFormRepo = playerFormRepo;
         this.playerAppearanceTransformer = playerAppearanceTransformer;
+        this.activePlayersByYearRepo = activePlayersByYearRepo;
     }
 
     @Override
@@ -74,6 +83,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
                                 }
                             });
                     playerFormRepo.save(playerForm);
+                    updateActivePlayersByYear(playerForm);
                 }
               else {
                   //note: models will need to be retrained due to this, as per the leagues training.  as new records added need to put in
@@ -102,16 +112,16 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
     @Override
     public List<Player> getPlayers() {
-        List<Player> players = new ArrayList<>();
+       Set<UUID> players = new HashSet<>();
 
-        playerFormRepo.findAll()
-                .forEach(pf -> {
-                    Player player = new Player();
-                    player.setId(pf.getId());
+       activePlayersByYearRepo.findAll()
+               .forEach(year-> players.addAll(year.getPlayers()));
 
-                    players.add(player);
-                });
-        return players;
+       return
+               players
+               .stream()
+               .map(Player::new)
+               .collect(Collectors.toList());
     }
 
     @Override
@@ -121,7 +131,42 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
     @Override
     public Boolean firstTime() {
+        IntStream.range(2009, LocalDate.now().plusYears(1).getYear())
+                .forEach(year -> activeMap.put(year, new HashSet<>()));
+
         return playerFormRepo.count() == 0;
+    }
+
+    @Override
+    public void saveActiveByYear() {
+        activeMap.keySet()
+                .stream()
+                .forEach(year->
+                    activePlayersByYearRepo.findById(year).ifPresentOrElse(
+                            then -> {
+                                log.info("updating {}", year);
+                                then.getPlayers().addAll(activeMap.get(year));
+                                activePlayersByYearRepo.save(then);
+                            }, () -> {
+                                log.info("creating {}", year);
+                                ActivePlayersByYear activePlayersByYear = new ActivePlayersByYear();
+                                activePlayersByYear.setYear(year);
+                                activePlayersByYear.getPlayers().addAll(activeMap.get(year));
+                                activePlayersByYearRepo.save(activePlayersByYear);
+                            })
+                );
+
+        activeMap.clear();
+
+    }
+
+
+    private void updateActivePlayersByYear(PlayerForm playerForm){
+        playerForm
+                .getPlayerAppearances()
+                .stream()
+                .map(m -> dateUtils.convertToLocalDate.apply(m.getDate()).getYear())
+                .forEach(year -> activeMap.get(year).add(playerForm.getId()));
     }
 
 }

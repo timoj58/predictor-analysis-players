@@ -2,6 +2,7 @@ package com.timmytime.predictoranalysisplayers.util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Calendar;
@@ -21,5 +22,9 @@ public class DateUtils {
             return Calendar.getInstance().getTime();
         }
     };
+
+    public Function<Date, LocalDate> convertToLocalDate = date ->
+            date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
 
 }

@@ -7,10 +7,7 @@ import com.timmytime.predictoranalysisplayers.callable.Validate;
 import com.timmytime.predictoranalysisplayers.receipt.Receipt;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptTask;
-import com.timmytime.predictoranalysisplayers.service.AutomationService;
-import com.timmytime.predictoranalysisplayers.service.CompetitionService;
-import com.timmytime.predictoranalysisplayers.service.TensorflowPredictionService;
-import com.timmytime.predictoranalysisplayers.service.TensorflowTrainingService;
+import com.timmytime.predictoranalysisplayers.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,18 +30,21 @@ public class AutomationServiceImpl implements AutomationService {
     private final CompetitionService competitionService;
     private final TensorflowTrainingService trainingService;
     private final TensorflowPredictionService predictionService;
+    private final ValidationService validationService;
 
     @Autowired
     public AutomationServiceImpl(
             ReceiptManager receiptManager,
             CompetitionService competitionService,
             TensorflowTrainingService trainingService,
-            TensorflowPredictionService predictionService
+            TensorflowPredictionService predictionService,
+            ValidationService validationService
     ) {
         this.receiptManager = receiptManager;
         this.competitionService = competitionService;
         this.trainingService = trainingService;
         this.predictionService = predictionService;
+        this.validationService = validationService;
     }
 
     @Override
@@ -64,19 +64,17 @@ public class AutomationServiceImpl implements AutomationService {
                 )
         ));
 
-        /*
-         need to do the validation one here.. TODO
-         */
-       /* receipts.add(
+
+        receipts.add(
                 receiptManager.generateReceipt.apply(
                         validate,
-                        new ReceiptTask(new Validate(), train, timeout)
+                        new ReceiptTask(
+                                new Validate(validationService,validate),
+                                train, timeout)
                 )
         );
-        */
 
 
-        //remove for timebeing.  test the other stuff first...
 
         receipts.add(receiptManager.generateReceipt.apply(
                 train,
@@ -94,6 +92,10 @@ public class AutomationServiceImpl implements AutomationService {
                         null,timeout
                 )
         ));
+
+        /*
+         note the final receipt will be a lambda to turn machine learning off.  TODO
+         */
 
 
         receiptManager.sendReceipt.accept(receipts.get(0));
