@@ -3,9 +3,9 @@ package com.timmytime.predictoranalysisplayers.service.impl;
 
 import com.timmytime.predictoranalysisplayers.exception.PlayerNotOnFile;
 import com.timmytime.predictoranalysisplayers.facade.MatchFacade;
-import com.timmytime.predictoranalysisplayers.model.redis.ActivePlayersByYear;
+import com.timmytime.predictoranalysisplayers.model.mongo.PlayersByYear;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
-import com.timmytime.predictoranalysisplayers.repo.redis.ActivePlayersByYearRepo;
+import com.timmytime.predictoranalysisplayers.repo.mongo.PlayersByYearRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.response.PlayersByTeam;
 import com.timmytime.predictoranalysisplayers.response.data.MatchResponse;
@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -32,7 +31,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
     private final MatchFacade matchFacade;
     private final PlayerFormRepo playerFormRepo;
-    private final ActivePlayersByYearRepo activePlayersByYearRepo;
+    private final PlayersByYearRepo playersByYearRepo;
     private final PlayerAppearanceTransformer playerAppearanceTransformer;
     private final DateUtils dateUtils = new DateUtils();
 
@@ -49,12 +48,12 @@ public class PlayerFormServiceImpl implements PlayerFormService {
             MatchFacade matchFacade,
             PlayerFormRepo playerFormRepo,
             PlayerAppearanceTransformer playerAppearanceTransformer,
-            ActivePlayersByYearRepo activePlayersByYearRepo
+            PlayersByYearRepo playersByYearRepo
     ) {
         this.matchFacade = matchFacade;
         this.playerFormRepo = playerFormRepo;
         this.playerAppearanceTransformer = playerAppearanceTransformer;
-        this.activePlayersByYearRepo = activePlayersByYearRepo;
+        this.playersByYearRepo = playersByYearRepo;
     }
 
     @Override
@@ -65,7 +64,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
             PlayerForm playerForm = new PlayerForm(player);
 
                 //due to machine learning, we can not add new players without retraining the model.
-                if(firstTime || playerFormRepo.findById(playerForm.getId()).isPresent()) {
+                if(firstTime || getPlayers().stream().map(Player::getId).anyMatch(f -> f.equals(player.getId()))) {
 
                     List<MatchResponse> matches = matchFacade.findByPlayer(player.getId());
                     matches.stream()
@@ -87,7 +86,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
                 }
               else {
                   //note: models will need to be retrained due to this, as per the leagues training.  as new records added need to put in
-                  log.info("new player skipped - this needs to be logged in mongo longterm,  and retrain once a sufficient number");
+                  log.info("new {} skipped", player.getLabel());
               }
         } catch (Exception e) {
             log.error("player form", e);
@@ -114,7 +113,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
     public List<Player> getPlayers() {
        Set<UUID> players = new HashSet<>();
 
-       activePlayersByYearRepo.findAll()
+        playersByYearRepo.findAll()
                .forEach(year-> players.addAll(year.getPlayers()));
 
        return
@@ -134,7 +133,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
         IntStream.range(2009, LocalDate.now().plusYears(1).getYear())
                 .forEach(year -> activeMap.put(year, new HashSet<>()));
 
-        return playerFormRepo.count() == 0;
+        return playersByYearRepo.count() == 0;
     }
 
     @Override
@@ -142,17 +141,17 @@ public class PlayerFormServiceImpl implements PlayerFormService {
         activeMap.keySet()
                 .stream()
                 .forEach(year->
-                    activePlayersByYearRepo.findById(year).ifPresentOrElse(
+                        playersByYearRepo.findById(year).ifPresentOrElse(
                             then -> {
                                 log.info("updating {}", year);
                                 then.getPlayers().addAll(activeMap.get(year));
-                                activePlayersByYearRepo.save(then);
+                                playersByYearRepo.save(then);
                             }, () -> {
                                 log.info("creating {}", year);
-                                ActivePlayersByYear activePlayersByYear = new ActivePlayersByYear();
+                                PlayersByYear activePlayersByYear = new PlayersByYear();
                                 activePlayersByYear.setYear(year);
                                 activePlayersByYear.getPlayers().addAll(activeMap.get(year));
-                                activePlayersByYearRepo.save(activePlayersByYear);
+                                playersByYearRepo.save(activePlayersByYear);
                             })
                 );
 

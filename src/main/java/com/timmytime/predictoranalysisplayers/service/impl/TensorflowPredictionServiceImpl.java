@@ -70,6 +70,17 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     @Override
     public void predict(UUID receipt) {
 
+
+        tensorflowFacade.init("goals");
+        tensorflowFacade.init("assists");
+        tensorflowFacade.init("yellow");
+        tensorflowFacade.init("red");
+        tensorflowFacade.init("conceded");
+        tensorflowFacade.init("minutes");
+        tensorflowFacade.init("saves");
+
+
+
         receiptMap.clear();
         List<Receipt> receipts = new ArrayList<>();
 
@@ -92,6 +103,8 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
                         .stream()
                         .forEach(event -> {
 
+                            log.info("predicting event for {} vs {}", event.getHome().getLabel(), event.getAway().getLabel());
+
                             List<PlayerForm> homePlayers = playerFormRepo.findByTeam(event.getHome().getId());
                             List<PlayerForm> awayPlayers = playerFormRepo.findByTeam(event.getAway().getId());
 
@@ -101,34 +114,42 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
                                     .forEach(fantasyEventTypes -> {
                                         homePlayers.stream()
                                                 .forEach(homePlayer -> {
-                                                    receipts.add(
-                                                            create(homePlayer.getId(), new PlayerEventOutcomeCsv(
-                                                                    homePlayer.getId(),
-                                                                    event.getAway().getId(),
-                                                                    "home"),
-                                                                    fantasyEventTypes,
-                                                                    event.getEventDate().getTime(),
-                                                                    receiptIds.get(Boolean.TRUE),
-                                                                    receiptIds.get(Boolean.FALSE))
-                                                    );
-                                                    receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
-                                                    receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                   if(homePlayer.isGoalKeeper() && fantasyEventTypes.equals(FantasyEventTypes.SAVES)
+                                                   || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
+                                                       receipts.add(
+                                                               create(homePlayer.getId(), new PlayerEventOutcomeCsv(
+                                                                               homePlayer.getId(),
+                                                                               event.getAway().getId(),
+                                                                               "home"),
+                                                                       fantasyEventTypes,
+                                                                       Boolean.FALSE,
+                                                                       event.getEventDate().getTime(),
+                                                                       receiptIds.get(Boolean.TRUE),
+                                                                       receiptIds.get(Boolean.FALSE))
+                                                       );
+                                                       receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
+                                                       receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                   }
                                                 });
 
                                         awayPlayers.stream()
                                                 .forEach(awayPlayer -> {
-                                                    receipts.add(
-                                                            create(awayPlayer.getId(), new PlayerEventOutcomeCsv(
+                                                    if(awayPlayer.isGoalKeeper() && fantasyEventTypes.equals(FantasyEventTypes.SAVES)
+                                                            || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
+                                                        receipts.add(
+                                                        create(awayPlayer.getId(), new PlayerEventOutcomeCsv(
                                                                     awayPlayer.getId(),
                                                                     event.getHome().getId(),
                                                                     "away"),
                                                                     fantasyEventTypes,
+                                                                    Boolean.FALSE,
                                                                     event.getEventDate().getTime(),
                                                                     receiptIds.get(Boolean.TRUE),
                                                                     receiptIds.get(Boolean.FALSE))
                                                     );
                                                     receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
                                                     receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                    }
                                                 });
                                     });
 
@@ -169,13 +190,13 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
         List<Receipt> receipts = new ArrayList<>();
 
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS, System.currentTimeMillis(), goalsReceipt, assistsReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.ASSISTS, System.currentTimeMillis(), assistsReceipt, minutesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.MINUTES, System.currentTimeMillis(), minutesReceipt, concededReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS_CONCEDED, System.currentTimeMillis(), concededReceipt, savesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES, System.currentTimeMillis(), savesReceipt, redReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.RED_CARD, System.currentTimeMillis(), redReceipt, yellowReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.YELLOW_CARD, System.currentTimeMillis(), yellowReceipt, completed));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS,Boolean.TRUE, System.currentTimeMillis(), goalsReceipt, assistsReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.ASSISTS,Boolean.TRUE, System.currentTimeMillis(), assistsReceipt, minutesReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.MINUTES,Boolean.TRUE, System.currentTimeMillis(), minutesReceipt, concededReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS_CONCEDED,Boolean.TRUE, System.currentTimeMillis(),concededReceipt, savesReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES,Boolean.TRUE, System.currentTimeMillis(),savesReceipt, redReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.RED_CARD,Boolean.TRUE, System.currentTimeMillis(),redReceipt, yellowReceipt));
+        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.YELLOW_CARD,Boolean.TRUE, System.currentTimeMillis(),yellowReceipt, completed));
         receipts.add(
                 receiptManager.generateReceipt.apply(
                         completed,
@@ -194,7 +215,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     }
 
 
-    private Receipt create(UUID player, PlayerEventOutcomeCsv data, FantasyEventTypes fantasyEventTypes, Long date, UUID receiptId, UUID nextReceiptId){
+    private Receipt create(UUID player, PlayerEventOutcomeCsv data, FantasyEventTypes fantasyEventTypes, Boolean init, Long date, UUID receiptId, UUID nextReceiptId){
 
         receiptMap.put(receiptId,
                 new JSONObject()
@@ -211,7 +232,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
                 new ReceiptTask(
                         new Predict(
                                 tensorflowFacade,
-                                player,
+                                init,
                                 fantasyEventTypes,
                                 data,
                                 receiptId
@@ -229,6 +250,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
             try {
 
+                //TODO this needs to be done for every receipt, rather than wait, given thousands of receipts to process.
                 log.info("saving fantasy predictions");
 
                 receiptMap.values().stream()
@@ -249,6 +271,19 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
             }catch (Exception e){
                 log.error("completion", e);
             }
+
+
+            tensorflowFacade.destroy("goals");
+            tensorflowFacade.destroy("saves");
+            tensorflowFacade.destroy("assists");
+            tensorflowFacade.destroy("minutes");
+            tensorflowFacade.destroy("conceded");
+            tensorflowFacade.destroy("yellow");
+            tensorflowFacade.destroy("red");
+
+
+            //should send receipt...TODO.  but working.  the receipt will shut down the machine learning instance via lambda.
+            //actually...it will call the load mobile cache service after the one above...
 
             return null;
         }

@@ -8,5 +8,7 @@ class AutomationServiceImplTest {
 
     @Test
     void start() {
+        //TODO write some tests.  bit late now ;)
+        
     }
 }

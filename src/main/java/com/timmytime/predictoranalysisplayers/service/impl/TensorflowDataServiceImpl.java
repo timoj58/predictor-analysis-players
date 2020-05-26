@@ -1,15 +1,12 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
-import com.timmytime.predictoranalysisplayers.enumerator.ApplicableFantasyLeagues;
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
-import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
 import com.timmytime.predictoranalysisplayers.model.redis.Event;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerAppearance;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
-import com.timmytime.predictoranalysisplayers.repo.redis.ActivePlayersByYearRepo;
+import com.timmytime.predictoranalysisplayers.repo.mongo.PlayersByYearRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.response.PlayerEventOutcomeCsv;
-import com.timmytime.predictoranalysisplayers.response.data.Team;
 import com.timmytime.predictoranalysisplayers.service.TensorflowDataService;
 import com.timmytime.predictoranalysisplayers.util.DateUtils;
 import org.slf4j.Logger;
@@ -18,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service("tensorflowService")
 public class TensorflowDataServiceImpl implements TensorflowDataService {
@@ -28,13 +24,13 @@ public class TensorflowDataServiceImpl implements TensorflowDataService {
     private final DateUtils dateUtils = new DateUtils();
 
     private final PlayerFormRepo playerFormRepo;
-    private final ActivePlayersByYearRepo activePlayersByYearRepo;
+    private final PlayersByYearRepo activePlayersByYearRepo;
 
 
     @Autowired
     public TensorflowDataServiceImpl(
             PlayerFormRepo playerFormRepo,
-            ActivePlayersByYearRepo activePlayersByYearRepo
+            PlayersByYearRepo activePlayersByYearRepo
     ) {
         this.playerFormRepo = playerFormRepo;
         this.activePlayersByYearRepo = activePlayersByYearRepo;

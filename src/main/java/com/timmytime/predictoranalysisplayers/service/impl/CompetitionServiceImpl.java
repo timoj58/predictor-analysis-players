@@ -3,11 +3,14 @@ package com.timmytime.predictoranalysisplayers.service.impl;
 import com.timmytime.predictoranalysisplayers.callable.Completion;
 import com.timmytime.predictoranalysisplayers.enumerator.ApplicableFantasyLeagues;
 import com.timmytime.predictoranalysisplayers.facade.PlayerFacade;
+import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
 import com.timmytime.predictoranalysisplayers.receipt.Receipt;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptTask;
+import com.timmytime.predictoranalysisplayers.response.MatchPrediction;
 import com.timmytime.predictoranalysisplayers.service.CompetitionService;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
+import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,19 +32,25 @@ public class CompetitionServiceImpl implements CompetitionService {
     private Long timeout;
 
     private final PlayerFacade playerFacade;
+    private final TeamFacade teamFacade;
     private final PlayerFormService playerFormService;
     private final ReceiptManager receiptManager;
+    private final PlayerResponseService playerResponseService;
 
     private Map<String, Boolean> loadingStatus = new HashMap<>();
 
     @Autowired
     public CompetitionServiceImpl(
             PlayerFacade playerFacade,
+            TeamFacade teamFacade,
             PlayerFormService playerFormService,
+            PlayerResponseService playerResponseService,
             ReceiptManager receiptManager
     ) {
         this.playerFacade = playerFacade;
+        this.teamFacade = teamFacade;
         this.playerFormService = playerFormService;
+        this.playerResponseService = playerResponseService;
         this.receiptManager = receiptManager;
     }
 
@@ -50,6 +59,7 @@ public class CompetitionServiceImpl implements CompetitionService {
 
         loadingStatus.clear();
         Boolean firstTime = playerFormService.firstTime();
+        playerFormService.clear();
 
 
         //this all needs to be receipt controlled as well now.....
@@ -73,6 +83,25 @@ public class CompetitionServiceImpl implements CompetitionService {
 
         new CompetitionWatcher(() -> loadingStatus.values().stream().allMatch(f -> f == Boolean.FALSE), receiptId).start();
 
+    }
+
+    @Override
+    public MatchPrediction get(UUID home, UUID away) {
+        MatchPrediction matchPrediction = new MatchPrediction();
+
+        matchPrediction.setHomeLabel(teamFacade.findById(home).get().getLabel());
+        matchPrediction.setAwayLabel(teamFacade.findById(away).get().getLabel());
+
+
+        playerFormService.getPlayers(home).getPlayers()
+                .stream()
+                .forEach(player -> matchPrediction.getHomePlayers().add(playerResponseService.get(player)));
+
+        playerFormService.getPlayers(away).getPlayers()
+                .stream()
+                .forEach(player -> matchPrediction.getAwayPlayers().add(playerResponseService.get(player)));
+
+        return matchPrediction;
     }
 
 

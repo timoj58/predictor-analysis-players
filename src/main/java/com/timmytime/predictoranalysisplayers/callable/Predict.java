@@ -17,12 +17,12 @@ public class Predict implements Callable {
     private final TensorflowFacade tensorflowFacade;
     private final FantasyEventTypes fantasyEventTypes;
     private final UUID receipt;
-    private final UUID player;
+    private final Boolean init;
     private final PlayerEventOutcomeCsv data;
 
     public Predict(
             TensorflowFacade tensorflowFacade,
-            UUID player,
+            Boolean init,
             FantasyEventTypes fantasyEventTypes,
             PlayerEventOutcomeCsv data,
             UUID receipt
@@ -31,17 +31,17 @@ public class Predict implements Callable {
       this.fantasyEventTypes = fantasyEventTypes;
       this.receipt = receipt;
       this.data = data;
-      this.player = player;
+      this.init = init;
     }
 
 
     @Override
     public Object call() throws Exception {
 
-        log.info("predicting {} {} ", player, fantasyEventTypes.name());
+        log.info("predicting {} {} ", data.getPlayer(), fantasyEventTypes.name());
 
         try {
-            return tensorflowFacade.predict(player, fantasyEventTypes, data, receipt);
+            return tensorflowFacade.predict(fantasyEventTypes, data, init, receipt);
         }catch (Exception e){
             log.error("predict", e);
             return null;

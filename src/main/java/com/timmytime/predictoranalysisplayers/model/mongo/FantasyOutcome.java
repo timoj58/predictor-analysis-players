@@ -28,4 +28,5 @@ public class FantasyOutcome {
     public FantasyOutcome(UUID id){
         this.id = id;
     }
+
 }

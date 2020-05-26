@@ -18,7 +18,7 @@ public class FantasyResponseTransformer {
             outcomes.stream()
                     .filter(predicate)
                     .findFirst()
-                    .get()
+                    .orElseThrow()
                     .getPrediction();
 
     public Function<List<FantasyOutcome>, FantasyResponse> transform = outcomes -> {
@@ -38,9 +38,13 @@ public class FantasyResponseTransformer {
                 filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.GOALS))
         ));
 
-        fantasyResponse.setSaves(predictionResultUtils.getAverage.apply(
-                filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.SAVES))
-        ));
+        try {
+            fantasyResponse.setSaves(predictionResultUtils.getAverage.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.SAVES))
+            ));
+        }catch (Exception e){
+            fantasyResponse.setSaves(null);
+        }
 
         fantasyResponse.setConceded(predictionResultUtils.getAverage.apply(
                 filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.GOALS_CONCEDED))

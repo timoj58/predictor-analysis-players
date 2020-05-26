@@ -23,6 +23,7 @@ public class DateUtils {
         }
     };
 
+
     public Function<Date, LocalDate> convertToLocalDate = date ->
             date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 

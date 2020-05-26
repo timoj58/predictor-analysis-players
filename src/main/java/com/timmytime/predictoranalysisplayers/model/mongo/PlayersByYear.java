@@ -1,18 +1,18 @@
-package com.timmytime.predictoranalysisplayers.model.redis;
+package com.timmytime.predictoranalysisplayers.model.mongo;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@RedisHash("activeByYear")
-public class ActivePlayersByYear {
+public class PlayersByYear {
 
     @Id
     private Integer year;

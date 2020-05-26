@@ -1,6 +1,7 @@
 package com.timmytime.predictoranalysisplayers.facade;
 
 import com.timmytime.predictoranalysisplayers.response.data.Player;
+import com.timmytime.predictoranalysisplayers.response.data.Team;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class PlayerFacade {
@@ -19,6 +22,9 @@ public class PlayerFacade {
 
     @Value("${players.url}")
     private String playersUrl;
+
+    @Value("${player.url}")
+    private String playerUrl;
 
     private RestTemplate restTemplate = new RestTemplate();
 
@@ -36,5 +42,17 @@ public class PlayerFacade {
                 typeRef)
                 .getBody();
 
+    }
+
+    public Optional<Player> findById(UUID id){
+        return
+                Optional.ofNullable(
+                        restTemplate.exchange(
+                                dataHost + playerUrl.replace("{id}", id.toString()),
+                                HttpMethod.GET,
+                                new HttpEntity<>(null, authApiFacade.authenticate()),
+                                Player.class)
+                                .getBody()
+                );
     }
 }

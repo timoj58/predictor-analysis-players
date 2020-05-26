@@ -60,6 +60,13 @@ public class TensorflowFacade extends RestTemplateHelper {
 
     @Value("${ml.predict.yellow.url}")
     private String predictYellowUrl;
+
+    @Value("${ml.predict.init.url}")
+    private String initUrl;
+
+    @Value("${ml.predict.destroy.url}")
+    private String destroyUrl;
+
     /*
       so two train an predict...simply enough....
      */
@@ -80,16 +87,37 @@ public class TensorflowFacade extends RestTemplateHelper {
                         .getBody());
     }
 
-    public JSONObject predict(UUID player, FantasyEventTypes fantasyEventTypes, PlayerEventOutcomeCsv playerEventOutcomeCsv, UUID receipt){
+    public JSONObject predict(FantasyEventTypes fantasyEventTypes, PlayerEventOutcomeCsv playerEventOutcomeCsv, Boolean init, UUID receipt){
         return new JSONObject(
                 restTemplate.postForEntity(
                         mlHost + getUrl(fantasyEventTypes, Boolean.FALSE)
                                 .replace("<receipt>", receipt.toString())
-                                .replace("<player>", player.toString()),
+                                .replace("<init>", init.toString()),
                         playerEventOutcomeCsv.getJson(),
                         String.class)
                         .getBody());
     }
+
+    public JSONObject init(String type){
+        return new JSONObject(
+                restTemplate.postForEntity(
+                        mlHost + initUrl
+                                .replace("<type>", type),
+                         null,
+                        String.class)
+                        .getBody());
+    }
+
+    public JSONObject destroy(String type){
+        return new JSONObject(
+                restTemplate.postForEntity(
+                        mlHost + destroyUrl
+                                .replace("<type>", type),
+                       null,
+                        String.class)
+                        .getBody());
+    }
+
 
     private String getUrl(FantasyEventTypes fantasyEventTypes, Boolean trainingMode) {
         switch (fantasyEventTypes) {

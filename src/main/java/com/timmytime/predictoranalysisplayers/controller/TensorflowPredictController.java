@@ -41,6 +41,15 @@ public class TensorflowPredictController {
     }
 
 
+    @RequestMapping(
+            value = "",
+            method = RequestMethod.PUT)
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public void eventPredictions(){
+
+        tensorflowPredictionService.predict(UUID.randomUUID());
+    }
+
 
     @RequestMapping(
             value = "game/{player-id}",
