@@ -25,39 +25,62 @@ public class FantasyResponseTransformer {
         FantasyResponse fantasyResponse = new FantasyResponse();
 
 
-        fantasyResponse.setMinutes(predictionResultUtils.getAverage.apply(
-                        filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.MINUTES))
-                        ));
+        try {
+            fantasyResponse.setMinutes(predictionResultUtils.getAverage.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.MINUTES))
+            ));
+        } catch (Exception e) {
+            fantasyResponse.setSaves(null);
+        }
 
 
-        fantasyResponse.setAssists(predictionResultUtils.getScores.apply(
-                filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.ASSISTS))
-        ));
+        try {
+            fantasyResponse.setAssists(predictionResultUtils.getScores.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.ASSISTS))
+            ));
+        } catch (Exception e) {
+            fantasyResponse.setSaves(null);
+        }
 
-        fantasyResponse.setGoals(predictionResultUtils.getScores.apply(
-                filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.GOALS))
-        ));
+        try {
+            fantasyResponse.setGoals(predictionResultUtils.getScores.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.GOALS))
+            ));
+        } catch (Exception e) {
+            fantasyResponse.setSaves(null);
+        }
 
         try {
             fantasyResponse.setSaves(predictionResultUtils.getAverage.apply(
                     filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.SAVES))
             ));
-        }catch (Exception e){
+        } catch (Exception e) {
             fantasyResponse.setSaves(null);
         }
 
-        fantasyResponse.setConceded(predictionResultUtils.getAverage.apply(
-                filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.GOALS_CONCEDED))
-        ));
+        try {
+            fantasyResponse.setConceded(predictionResultUtils.getAverage.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.GOALS_CONCEDED))
+            ));
+        } catch (Exception e) {
+            fantasyResponse.setSaves(null);
+        }
 
-        fantasyResponse.setRedCards(predictionResultUtils.getScores.apply(
-                filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.RED_CARD))
-        ));
+        try {
+            fantasyResponse.setRedCards(predictionResultUtils.getScores.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.RED_CARD))
+            ));
+        } catch (Exception e) {
+            fantasyResponse.setSaves(null);
+        }
 
-        fantasyResponse.setYellowCards(predictionResultUtils.getScores.apply(
-                filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.YELLOW_CARD))
-        ));
-
+        try {
+            fantasyResponse.setYellowCards(predictionResultUtils.getScores.apply(
+                    filter.apply(outcomes, (f) -> f.getFantasyEventType().equals(FantasyEventTypes.YELLOW_CARD))
+            ));
+        } catch (Exception e) {
+            fantasyResponse.setSaves(null);
+        }
 
 
         return fantasyResponse;

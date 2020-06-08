@@ -1,36 +1,47 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.timmytime.predictoranalysisplayers.enumerator.ApplicableFantasyLeagues;
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
 import com.timmytime.predictoranalysisplayers.model.mongo.FantasyOutcome;
 import com.timmytime.predictoranalysisplayers.model.redis.Event;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerAppearance;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
+import com.timmytime.predictoranalysisplayers.model.redisson.PlayersResponse;
 import com.timmytime.predictoranalysisplayers.repo.mongo.FantasyOutcomeRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
+import com.timmytime.predictoranalysisplayers.repo.redisson.PlayersResponseRepo;
 import com.timmytime.predictoranalysisplayers.response.FantasyResponse;
-import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
-import com.timmytime.predictoranalysisplayers.response.data.StatMetric;
+import com.timmytime.predictoranalysisplayers.model.redisson.PlayerResponse;
+import com.timmytime.predictoranalysisplayers.response.TopPerformerResponse;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
 import com.timmytime.predictoranalysisplayers.transformer.FantasyResponseTransformer;
+import com.timmytime.predictoranalysisplayers.util.DateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import javax.annotation.PostConstruct;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 
 @Service("playerResponseService")
 public class PlayerResponseServiceImpl implements PlayerResponseService {
 
+    private static final Logger log = LoggerFactory.getLogger(PlayerResponseServiceImpl.class);
 
     private final FantasyOutcomeRepo fantasyOutcomeRepo;
     private final PlayerFormRepo playerFormRepo;
     private final TeamFacade teamFacade;
+    private final PlayersResponseRepo playersResponseRepo;
+    private final DateUtils dateUtils = new DateUtils();
 
     private final FantasyResponseTransformer fantasyResponseTransformer = new FantasyResponseTransformer();
 
@@ -49,10 +60,12 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
     public PlayerResponseServiceImpl(
             FantasyOutcomeRepo fantasyOutcomeRepo,
             PlayerFormRepo playerFormRepo,
+            PlayersResponseRepo playersResponseRepo,
             TeamFacade teamFacade
     ){
         this.fantasyOutcomeRepo = fantasyOutcomeRepo;
         this.playerFormRepo = playerFormRepo;
+        this.playersResponseRepo = playersResponseRepo;
         this.teamFacade = teamFacade;
     }
 
@@ -76,6 +89,22 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
         playerResponse.setAssists(getTotals.apply(playerForm.getPlayerAppearances(), FantasyEventTypes.ASSISTS));
         playerResponse.setRedCards(getTotals.apply(playerForm.getPlayerAppearances(), FantasyEventTypes.RED_CARD));
         playerResponse.setYellowCards(getTotals.apply(playerForm.getPlayerAppearances(), FantasyEventTypes.YELLOW_CARD));
+        if(playerForm.isGoalKeeper()) {
+            playerResponse.setSaves(getTotals.apply(playerForm.getPlayerAppearances(), FantasyEventTypes.SAVES));
+        }
+
+        //set our current status flags too (historic is worked out in app).
+        List<PlayerAppearance> recent = playerForm.getPlayerAppearances()
+                .stream()
+                .filter(f -> dateUtils.convertToLocalDate.apply(f.getDate()).isAfter(LocalDate.now().minusYears(1)))
+                .collect(Collectors.toList());
+
+        if(!recent.isEmpty()) {
+            playerResponse.setHardmanYellow((getTotals.apply(recent, FantasyEventTypes.YELLOW_CARD).doubleValue() / (double)recent.size()) * 100.0);
+            playerResponse.setHardmanRed((getTotals.apply(recent, FantasyEventTypes.RED_CARD).doubleValue() / (double)recent.size()) * 100.0);
+            playerResponse.setWizard( (getTotals.apply(recent, FantasyEventTypes.ASSISTS).doubleValue() / (double)recent.size()) * 100.0);
+            playerResponse.setMarksman((getTotals.apply(recent, FantasyEventTypes.GOALS).doubleValue() / (double)recent.size()) * 100.0);
+        }
 
         if(!fantasyOutcomes.isEmpty()) {
 
@@ -100,5 +129,78 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
         return playerResponse;
     }
 
+    @Override
+    public List<TopPerformerResponse> topPerformers(String competition, FantasyEventTypes fantasyEventTypes) {
+        List<TopPerformerResponse> topPerformerResponses = new ArrayList<>();
+        List<PlayerForm> playerForms = new ArrayList<>();
+
+        teamFacade.getTeamsByCompetition(competition)
+                .stream()
+                .forEach(team -> playerForms.addAll(playerFormRepo.findByTeam(team.getId())));
+
+        //now find fantasy outcomes by success
+        Map<UUID, List<FantasyOutcome>> fantasyOutcomes =
+                fantasyOutcomeRepo.findByPlayerIdInAndSuccessAndFantasyEventType(
+                        playerForms.stream().map(PlayerForm::getId).collect(Collectors.toList()),
+                        Boolean.TRUE,
+                        fantasyEventTypes)
+                .stream()
+                .filter(f -> f.getEventDate().isAfter(LocalDateTime.now().minusWeeks(1)))
+                .collect(groupingBy(FantasyOutcome::getPlayerId));
+
+
+        fantasyOutcomes.keySet().stream()
+                .forEach(player -> {
+
+                    PlayerForm playerForm = playerForms.stream().filter(f -> f.getId().equals(player)).findFirst().get();
+
+                    TopPerformerResponse topPerformerResponse = new TopPerformerResponse(playerForm, fantasyEventTypes);
+
+                    topPerformerResponse.setFantasyResponse(fantasyResponseTransformer.transform.apply(fantasyOutcomes.get(player)));
+
+                    topPerformerResponses.add(topPerformerResponse);
+                });
+
+        return topPerformerResponses;
+    }
+
+    @Override
+    public List<TopPerformerResponse> topPicks(String competition, FantasyEventTypes fantasyEventTypes) {
+        List<TopPerformerResponse> topPerformerResponses = new ArrayList<>();
+        List<PlayerForm> playerForms = new ArrayList<>();
+
+        teamFacade.getTeamsByCompetition(competition)
+                .stream()
+                .forEach(team -> playerForms.addAll(playerFormRepo.findByTeam(team.getId())));
+        return null;
+    }
+
+    @Override
+    @PostConstruct
+    public void load() {
+
+        Arrays.asList(ApplicableFantasyLeagues.values())
+                .stream()
+                .forEach(competition ->
+                        teamFacade.getTeamsByCompetition(competition.name().toLowerCase())
+                .stream()
+                .forEach(team ->
+                        {
+                            playersResponseRepo.deleteAll(team.getId());
+
+                            List<PlayerResponse> playerResponses = new ArrayList<>();
+                            playerFormRepo.findByTeam(team.getId()).stream().forEach(player -> playerResponses.add(get(player.getId())));
+
+                            try {
+                                playersResponseRepo.save(team.getId(), new PlayersResponse(playerResponses));
+                            } catch (JsonProcessingException e) {
+                                log.error("teams players response cache", e);
+                            }
+
+                        }));
+
+    }
+
 
 }
+

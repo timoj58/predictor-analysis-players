@@ -15,6 +15,7 @@ import com.timmytime.predictoranalysisplayers.repo.mongo.FantasyOutcomeRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.response.PlayerEventOutcomeCsv;
 import com.timmytime.predictoranalysisplayers.service.TensorflowPredictionService;
+import com.timmytime.predictoranalysisplayers.util.LambdaUtils;
 import com.timmytime.predictoranalysisplayers.util.PredictionResultUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -46,6 +47,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
 
     private final PredictionResultUtils predictionResultUtils = new PredictionResultUtils();
+    private final LambdaUtils lambdaUtils = new LambdaUtils();
 
     private Map<UUID, JSONObject> receiptMap = new HashMap<>();
 
@@ -160,7 +162,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         receipts.add(
                 receiptManager.generateReceipt.apply(
                         receiptIds.get(Boolean.TRUE),
-                        new ReceiptTask(new SaveEvents(), null, timeout)
+                        new ReceiptTask(new SaveEvents(), receipt, timeout)
                 )
         );
 
@@ -282,9 +284,8 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
             tensorflowFacade.destroy("red");
 
 
-            //should send receipt...TODO.  but working.  the receipt will shut down the machine learning instance via lambda.
-            //actually...it will call the load mobile cache service after the one above...
-
+            //finally shut down (need to review timing of the above).. for now its ok. (plus no issue not clearing dir space, given instance destroyed after)
+            lambdaUtils.destroy();
             return null;
         }
     }

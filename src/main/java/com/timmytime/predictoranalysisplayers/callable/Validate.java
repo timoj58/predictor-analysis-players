@@ -25,7 +25,11 @@ public class Validate implements Callable {
     @Override
     public Object call() throws Exception {
         log.info("calling validate");
-        validationService.validate(receipt);
+        try {
+            validationService.validate(receipt, Boolean.TRUE);
+        }catch (Exception e){
+            log.error("validate", e);
+        }
         return null;
     }
 }

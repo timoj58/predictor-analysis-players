@@ -1,25 +1,31 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
-import com.timmytime.predictoranalysisplayers.callable.Completion;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.timmytime.predictoranalysisplayers.enumerator.ApplicableFantasyLeagues;
+import com.timmytime.predictoranalysisplayers.facade.EventFacade;
 import com.timmytime.predictoranalysisplayers.facade.PlayerFacade;
 import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
-import com.timmytime.predictoranalysisplayers.receipt.Receipt;
+import com.timmytime.predictoranalysisplayers.model.redisson.CompetitionTeamsResponse;
+import com.timmytime.predictoranalysisplayers.model.redisson.MatchSelectionsResponse;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
-import com.timmytime.predictoranalysisplayers.receipt.ReceiptTask;
+import com.timmytime.predictoranalysisplayers.repo.redisson.CompetitionTeamsResponseRepo;
+import com.timmytime.predictoranalysisplayers.repo.redisson.MatchSelectionsResponseRepo;
 import com.timmytime.predictoranalysisplayers.response.MatchPrediction;
+import com.timmytime.predictoranalysisplayers.response.data.Player;
+import com.timmytime.predictoranalysisplayers.response.data.Team;
 import com.timmytime.predictoranalysisplayers.service.CompetitionService;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
+import com.timmytime.predictoranalysisplayers.transformer.MatchSelectionResponseTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -36,6 +42,11 @@ public class CompetitionServiceImpl implements CompetitionService {
     private final PlayerFormService playerFormService;
     private final ReceiptManager receiptManager;
     private final PlayerResponseService playerResponseService;
+    private final EventFacade eventFacade;
+    private final CompetitionTeamsResponseRepo competitionTeamsResponseRepo;
+    private final MatchSelectionsResponseRepo matchSelectionsResponseRepo;
+
+    private final MatchSelectionResponseTransformer matchSelectionResponseTransformer = new MatchSelectionResponseTransformer();
 
     private Map<String, Boolean> loadingStatus = new HashMap<>();
 
@@ -45,12 +56,18 @@ public class CompetitionServiceImpl implements CompetitionService {
             TeamFacade teamFacade,
             PlayerFormService playerFormService,
             PlayerResponseService playerResponseService,
+            CompetitionTeamsResponseRepo competitionTeamsResponseRepo,
+            EventFacade eventFacade,
+            MatchSelectionsResponseRepo matchSelectionsResponseRepo,
             ReceiptManager receiptManager
     ) {
         this.playerFacade = playerFacade;
         this.teamFacade = teamFacade;
         this.playerFormService = playerFormService;
         this.playerResponseService = playerResponseService;
+        this.eventFacade = eventFacade;
+        this.competitionTeamsResponseRepo = competitionTeamsResponseRepo;
+        this.matchSelectionsResponseRepo = matchSelectionsResponseRepo;
         this.receiptManager = receiptManager;
     }
 
@@ -95,13 +112,77 @@ public class CompetitionServiceImpl implements CompetitionService {
 
         playerFormService.getPlayers(home).getPlayers()
                 .stream()
-                .forEach(player -> matchPrediction.getHomePlayers().add(playerResponseService.get(player)));
+                .forEach(player -> matchPrediction.getHomePlayers().add(playerResponseService.get(player.getId())));
 
         playerFormService.getPlayers(away).getPlayers()
                 .stream()
-                .forEach(player -> matchPrediction.getAwayPlayers().add(playerResponseService.get(player)));
+                .forEach(player -> matchPrediction.getAwayPlayers().add(playerResponseService.get(player.getId())));
 
         return matchPrediction;
+    }
+
+    @Override
+    @PostConstruct //remove this.. for now while testing...needs to be part of end process.
+    public void loadMatches() {
+        //load the top picks to redisson cache for matches.
+        Arrays.asList(ApplicableFantasyLeagues.values())
+                .stream()
+                .forEach(league -> {
+
+                    matchSelectionsResponseRepo.deleteAll(league.name().toLowerCase());
+                    eventFacade.upcomingEvents(league.getCountry(), league.name().toLowerCase())
+                            .stream()
+                            .forEach(events -> events.getUpcomingEventResponses()
+                                    .stream()
+                                    .forEach(event -> {
+
+                                                try {
+                                                    matchSelectionsResponseRepo.save(
+                                                            league.name().toLowerCase(),
+                                                            new MatchSelectionsResponse(
+                                                                    event.getHome().getId(),
+                                                                    event.getAway().getId(),
+                                                                    matchSelectionResponseTransformer.transform.apply(
+                                                                            get(
+                                                                                    event.getHome().getId(),
+                                                                                    event.getAway().getId())
+                                                                    )
+                                                            )
+                                                    );
+                                                } catch (JsonProcessingException e) {
+                                                    log.error("match selections", e);
+                                                }
+                                            }
+                                    )
+                            );
+                });
+
+    }
+
+
+    @PostConstruct
+    private void loadTeams(){
+
+        competitionTeamsResponseRepo.deleteAll();
+
+        Arrays.asList(ApplicableFantasyLeagues.values())
+                .stream()
+                .forEach(league ->
+                {
+
+                    List<Team> teams = teamFacade.getTeamsByCompetition(league.name().toLowerCase());
+
+                    try {
+                        competitionTeamsResponseRepo.save(
+                                new CompetitionTeamsResponse(
+                                        league.name().toLowerCase(),
+                                        teams
+                                )
+                        );
+                    } catch (JsonProcessingException e) {
+                        log.error("teams cache", e);
+                    }
+                });
     }
 
 

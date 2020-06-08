@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.repo.mongo;
 
+import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import com.timmytime.predictoranalysisplayers.model.mongo.FantasyOutcome;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
@@ -10,5 +11,6 @@ public interface FantasyOutcomeRepo extends MongoRepository<FantasyOutcome, UUID
 
     List<FantasyOutcome> findByPlayerIdAndSuccessNull(UUID id);
     List<FantasyOutcome> findBySuccessNull();
+    List<FantasyOutcome> findByPlayerIdInAndSuccessAndFantasyEventType(List<UUID> ids, Boolean success, FantasyEventTypes fantasyEventTypes);
 
 }

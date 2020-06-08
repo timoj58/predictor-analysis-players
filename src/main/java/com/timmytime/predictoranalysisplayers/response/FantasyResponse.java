@@ -4,14 +4,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class FantasyResponse {
+public class FantasyResponse implements Serializable {
 
     private String opponent;
     private Boolean isHome;

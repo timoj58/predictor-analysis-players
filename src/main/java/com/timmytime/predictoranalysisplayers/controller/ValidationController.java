@@ -23,7 +23,7 @@ public class ValidationController {
             method = RequestMethod.PUT)
     @PreAuthorize("hasRole('ROLE_AUTOMATION')")
     public void validate(){
-        validationService.validate(UUID.randomUUID());
+        validationService.validate(UUID.randomUUID(), Boolean.FALSE);
     }
 
 }

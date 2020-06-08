@@ -1,9 +1,6 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
-import com.timmytime.predictoranalysisplayers.callable.InitPredict;
-import com.timmytime.predictoranalysisplayers.callable.InitTrain;
-import com.timmytime.predictoranalysisplayers.callable.Load;
-import com.timmytime.predictoranalysisplayers.callable.Validate;
+import com.timmytime.predictoranalysisplayers.callable.*;
 import com.timmytime.predictoranalysisplayers.receipt.Receipt;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptTask;
@@ -31,6 +28,7 @@ public class AutomationServiceImpl implements AutomationService {
     private final TensorflowTrainingService trainingService;
     private final TensorflowPredictionService predictionService;
     private final ValidationService validationService;
+    private final PlayerResponseService playerResponseService;
 
     @Autowired
     public AutomationServiceImpl(
@@ -38,21 +36,24 @@ public class AutomationServiceImpl implements AutomationService {
             CompetitionService competitionService,
             TensorflowTrainingService trainingService,
             TensorflowPredictionService predictionService,
-            ValidationService validationService
+            ValidationService validationService,
+            PlayerResponseService playerResponseService
     ) {
         this.receiptManager = receiptManager;
         this.competitionService = competitionService;
         this.trainingService = trainingService;
         this.predictionService = predictionService;
         this.validationService = validationService;
+        this.playerResponseService = playerResponseService;
     }
 
     @Override
     public void start() {
         UUID load = receiptManager.generateId.get();
         UUID validate = receiptManager.generateId.get();
-        UUID train = receiptManager.generateId.get();
+       //TODO this cant be done daily.  needs to be seasonal - UUID train = receiptManager.generateId.get();
         UUID predict = receiptManager.generateId.get();
+        UUID loadCache = receiptManager.generateId.get();
 
         List<Receipt> receipts = new ArrayList<>();
 
@@ -70,32 +71,28 @@ public class AutomationServiceImpl implements AutomationService {
                         validate,
                         new ReceiptTask(
                                 new Validate(validationService,validate),
-                                train, timeout)
+                                predict, timeout)
                 )
         );
 
 
-
-        receipts.add(receiptManager.generateReceipt.apply(
-                train,
-                new ReceiptTask(
-                        new InitTrain(trainingService, train),
-                        predict,timeout
-                )
-        ));
 
 
         receipts.add(receiptManager.generateReceipt.apply(
                 predict,
                 new ReceiptTask(
                         new InitPredict(predictionService, predict),
-                        null,timeout
+                        loadCache,timeout
                 )
         ));
 
-        /*
-         note the final receipt will be a lambda to turn machine learning off.  TODO
-         */
+        receipts.add(receiptManager.generateReceipt.apply(
+                loadCache,
+                new ReceiptTask(
+                        new LoadCache(playerResponseService),
+                        null,timeout
+                )
+        ));
 
 
         receiptManager.sendReceipt.accept(receipts.get(0));

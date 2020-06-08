@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.response.data;
 
+import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,12 @@ public class Player {
 
     public Player(UUID id){
         this.id = id;
+    }
+
+    public Player(PlayerForm playerForm){
+        this.id = playerForm.getId();
+        this.label = playerForm.getLabel();
+        this.latestTeam = playerForm.getTeam();
     }
 
 

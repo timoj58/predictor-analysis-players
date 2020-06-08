@@ -10,6 +10,7 @@ import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.response.data.Player;
 import com.timmytime.predictoranalysisplayers.service.ValidationService;
 import com.timmytime.predictoranalysisplayers.util.DateUtils;
+import com.timmytime.predictoranalysisplayers.util.LambdaUtils;
 import com.timmytime.predictoranalysisplayers.util.PredictionResultUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class ValidationServiceImpl implements ValidationService {
 
     private final DateUtils dateUtils = new DateUtils();
     private final PredictionResultUtils predictionResultUtils = new PredictionResultUtils();
+    private final LambdaUtils lambdaUtils = new LambdaUtils();
 
     @Value("${prediction.cutoff}")
     private Integer predictionCutOff;
@@ -57,7 +59,13 @@ public class ValidationServiceImpl implements ValidationService {
      */
 
     @Override
-    public void validate(UUID receiptId) {
+    public void validate(UUID receiptId, Boolean startMachineLearning) {
+
+        log.info("starting validation");
+        if(startMachineLearning) {
+            lambdaUtils.startMachineLearning();
+        }
+
         Set<UUID> playersWhoDidNotPlay = new HashSet<>();
 
         Map<UUID, List<FantasyOutcome>>
@@ -92,64 +100,10 @@ public class ValidationServiceImpl implements ValidationService {
                                            playerAppearance.ifPresentOrElse(then -> {
                                                        log.info("validating {}", playerForm.getLabel());
                                                        log.info("matched appearance {} vs {}", then.getHomeTeam(), then.getAwayTeam());
-                                                        /*
-                                                          validation rules.
 
-                                                          goals / assists / yellow / red card.
-
-                                                          tuneable.  if the % is over cutoff, and occured, its success
-
-                                                          conceded -> is the CEIL of prediction >= actual....to review. clean sheets hard
-                                                          saves -> use CEIL method again.
-                                                          minutes -> over under 60 is fine.
-
-                                                          lots of work to do at present.  perhaps just skip validation for now.
-
-                                                          fix rest, and come back to this at some point.
-
-                                                         */
                                                        eventItems.stream()
                                                                .forEach(item -> {
-
-                                                                   item.setSuccess(Boolean.FALSE);
-
-                                                                   switch (item.getFantasyEventType()){
-                                                                       case YELLOW_CARD:
-                                                                       case RED_CARD:
-                                                                       case GOALS:
-                                                                       case ASSISTS:
-                                                                           then.getStatMetrics().stream().filter(f -> f.getEventType().equals(item.getFantasyEventType()))
-                                                                                   .findFirst().ifPresent(stat ->
-
-                                                                                       predictionResultUtils.getScores.apply(item.getPrediction()).values().stream().findFirst()
-                                                                                               .ifPresent(check -> {
-                                                                                                   if(stat.getValue() > 0
-                                                                                                           &&
-                                                                                                           Double.valueOf(predictionCutOff) <= check){
-                                                                                                       item.setSuccess(Boolean.TRUE);
-                                                                                                   }
-                                                                                               })
-                                                                           );
-                                                                           break;
-                                                                       case MINUTES:
-                                                                           if((then.getDuration() >= 60 && predictionResultUtils.getAverage.apply(item.getPrediction()) >= 60)
-                                                                           || (then.getDuration() < 60 && predictionResultUtils.getAverage.apply(item.getPrediction()) < 60)){
-                                                                               item.setSuccess(Boolean.TRUE);
-                                                                           }
-                                                                           break;
-                                                                       case SAVES:
-                                                                       case GOALS_CONCEDED:
-                                                                           Integer predicted = (int)Math.ceil(predictionResultUtils.getAverage.apply(item.getPrediction()));
-                                                                           then.getStatMetrics().stream().filter(f -> f.getEventType().equals(item.getFantasyEventType())).findFirst().ifPresent(
-                                                                                   e -> {
-                                                                                       if(predicted >= e.getValue()){
-                                                                                           item.setSuccess(Boolean.TRUE);
-                                                                                       }
-                                                                                   }
-                                                                           );
-                                                                           break;
-                                                                   }
-
+                                                                   item.setSuccess(validateEvent(item, then));
                                                                   fantasyOutcomeRepo.save(item);
                                                                });
 
@@ -189,5 +143,53 @@ public class ValidationServiceImpl implements ValidationService {
                 .forEach(record -> fantasyOutcomeRepo.deleteById(record.getId())));
 
          receiptManager.receiptReceived.accept(receiptId); //fire off completion.  (will fail for now).
+    }
+
+
+    private Boolean validateEvent(FantasyOutcome fantasyOutcome, PlayerAppearance playerAppearance){
+
+        Map<String, Boolean> result = new HashMap<>();
+        result.put("result", Boolean.FALSE);
+
+
+        switch (fantasyOutcome.getFantasyEventType()){
+            case YELLOW_CARD:
+            case RED_CARD:
+            case GOALS:
+            case ASSISTS:
+                playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(fantasyOutcome.getFantasyEventType()))
+                        .findFirst().ifPresent(stat ->
+
+                        predictionResultUtils.getScores.apply(fantasyOutcome.getPrediction()).values().stream().findFirst()
+                                .ifPresent(check -> {
+                                    if(stat.getValue() > 0
+                                            &&
+                                            Double.valueOf(predictionCutOff) <= check){
+                                        result.put("result", Boolean.TRUE);
+                                    }
+                                })
+                );
+                break;
+            case MINUTES:
+                if((playerAppearance.getDuration() >= 60 && predictionResultUtils.getAverage.apply(fantasyOutcome.getPrediction()) >= 60)
+                        || (playerAppearance.getDuration() < 60 && predictionResultUtils.getAverage.apply(fantasyOutcome.getPrediction()) < 60)){
+                    result.put("result", Boolean.TRUE);
+                }
+                break;
+            case SAVES:
+            case GOALS_CONCEDED:
+                Integer predicted = (int)Math.ceil(predictionResultUtils.getAverage.apply(fantasyOutcome.getPrediction()));
+                playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(fantasyOutcome.getFantasyEventType())).findFirst().ifPresent(
+                        e -> {
+                            if(predicted >= e.getValue()){
+                               result.put("result", Boolean.TRUE);
+                            }
+                        }
+                );
+                break;
+        }
+
+        return result.get("result");
+
     }
 }

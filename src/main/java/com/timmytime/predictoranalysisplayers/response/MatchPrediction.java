@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.response;
 
+import com.timmytime.predictoranalysisplayers.model.redisson.PlayerResponse;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

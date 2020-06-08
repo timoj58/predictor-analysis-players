@@ -1,6 +1,7 @@
 package com.timmytime.predictoranalysisplayers.response;
 
 
+import com.timmytime.predictoranalysisplayers.response.data.Player;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,5 +13,5 @@ import java.util.UUID;
 public class PlayersByTeam {
 
     private UUID team;
-    private List<UUID> players;
+    private List<Player> players;
 }

@@ -104,7 +104,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
         PlayersByTeam playersByCompetition = new PlayersByTeam();
         playersByCompetition.setTeam(team);
-        playersByCompetition.setPlayers(playerFormRepo.findByTeam(team).stream().map(PlayerForm::getId).collect(Collectors.toList()));
+        playersByCompetition.setPlayers(playerFormRepo.findByTeam(team).stream().map(Player::new).collect(Collectors.toList()));
 
         return playersByCompetition;
     }
@@ -166,6 +166,8 @@ public class PlayerFormServiceImpl implements PlayerFormService {
                 .stream()
                 .map(m -> dateUtils.convertToLocalDate.apply(m.getDate()).getYear())
                 .forEach(year -> activeMap.get(year).add(playerForm.getId()));
+
     }
+
 
 }
