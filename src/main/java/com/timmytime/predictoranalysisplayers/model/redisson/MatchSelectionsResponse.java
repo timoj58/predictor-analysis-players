@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.model.redisson;
 
+import com.timmytime.predictoranalysisplayers.response.MatchSelectionResponse;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,7 +12,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class MatchSelectionsResponse {
+public class MatchSelectionsResponse extends RedissonResponse {
     private UUID home;
     private UUID away;
     private List<MatchSelectionResponse> matchSelectionResponses = new ArrayList<>();

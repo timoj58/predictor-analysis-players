@@ -2,7 +2,7 @@ package com.timmytime.predictoranalysisplayers.controller;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.timmytime.predictoranalysisplayers.model.redisson.PlayerResponse;
+import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
 import com.timmytime.predictoranalysisplayers.service.TensorflowPredictionService;
 import org.json.JSONObject;

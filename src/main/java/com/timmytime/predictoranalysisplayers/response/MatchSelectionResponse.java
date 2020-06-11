@@ -1,4 +1,4 @@
-package com.timmytime.predictoranalysisplayers.model.redisson;
+package com.timmytime.predictoranalysisplayers.response;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

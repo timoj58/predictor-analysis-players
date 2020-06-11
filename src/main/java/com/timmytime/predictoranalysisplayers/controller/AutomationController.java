@@ -32,5 +32,17 @@ public class AutomationController {
         return;
     }
 
+    @RequestMapping(
+            value = "lambda-caches",
+            method = RequestMethod.PUT,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
+    public void loadLambdaCaches(
+    ) {
+        CompletableFuture.runAsync(() -> automationService.loadLambdaCaches());
+        return;
+    }
+
 
 }

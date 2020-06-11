@@ -161,6 +161,7 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
 
     private void updateActivePlayersByYear(PlayerForm playerForm){
+
         playerForm
                 .getPlayerAppearances()
                 .stream()

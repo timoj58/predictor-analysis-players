@@ -11,25 +11,35 @@ import org.springframework.stereotype.Component;
 
 
 @Component
-public class CompetitionTeamsResponseRepo {
+public class CompetitionTeamsResponseRepo implements IRedissonRepo<CompetitionTeamsResponse> {
 
-    private final RedissonClient redissonClient;
+    private final RedissonConnect redissonConnect;
 
     @Autowired
     public CompetitionTeamsResponseRepo(
-            @Value("${spring.redis.host}") String host
+           RedissonConnect redissonConnect
     ) {
-        redissonClient = RedissonConnect.connect(host);
+        this.redissonConnect = redissonConnect;
     }
 
     public void save(CompetitionTeamsResponse competitionTeamsResponse) throws JsonProcessingException {
 
-        redissonClient.getSet("CompetitionTeamsResponse", new org.redisson.client.codec.StringCodec())
+        redissonConnect.connect().getSet("CompetitionTeamsResponse", new org.redisson.client.codec.StringCodec())
                 .add(new ObjectMapper().writeValueAsString(competitionTeamsResponse));
     }
 
+    @Override
+    public void save(String key, CompetitionTeamsResponse competitionTeamsResponse) {
+
+    }
+
     public void deleteAll(){
-        redissonClient.getSet("CompetitionTeamsResponse", new org.redisson.client.codec.StringCodec()).delete();
+        redissonConnect.connect().getSet("CompetitionTeamsResponse", new org.redisson.client.codec.StringCodec()).delete();
+    }
+
+    @Override
+    public void deleteAll(String key) {
+
     }
 
 }

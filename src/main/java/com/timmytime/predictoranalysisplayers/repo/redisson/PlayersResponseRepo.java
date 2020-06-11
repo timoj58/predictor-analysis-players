@@ -12,25 +12,35 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-public class PlayersResponseRepo {
+public class PlayersResponseRepo implements IRedissonRepo<PlayersResponse> {
 
-    private final RedissonClient redissonClient;
+    private final RedissonConnect redissonConnect;
 
     @Autowired
     public PlayersResponseRepo(
-            @Value("${spring.redis.host}") String host
+            RedissonConnect redissonConnect
     ) {
-        redissonClient = RedissonConnect.connect(host);
+        this.redissonConnect = redissonConnect;
     }
 
-    public void save(UUID team, PlayersResponse playersResponse) throws JsonProcessingException {
+    @Override
+    public void save(PlayersResponse playersResponse) throws JsonProcessingException {
 
-        redissonClient.getSet(team.toString(), new org.redisson.client.codec.StringCodec())
+    }
+
+    public void save(String team, PlayersResponse playersResponse) throws JsonProcessingException {
+
+        redissonConnect.connect().getSet(team, new org.redisson.client.codec.StringCodec())
                 .add(new ObjectMapper().writeValueAsString(playersResponse));
     }
 
-    public void deleteAll(UUID team){
-        redissonClient.getSet(team.toString(), new org.redisson.client.codec.StringCodec()).delete();
+    @Override
+    public void deleteAll() {
+
+    }
+
+    public void deleteAll(String team){
+        redissonConnect.connect().getSet(team, new org.redisson.client.codec.StringCodec()).delete();
     }
 
 }

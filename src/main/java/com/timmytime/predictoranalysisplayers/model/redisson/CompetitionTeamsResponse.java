@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CompetitionTeamsResponse implements Serializable {
+public class CompetitionTeamsResponse extends RedissonResponse {
     private String competition;
     private List<Team> teams = new ArrayList<>();
 

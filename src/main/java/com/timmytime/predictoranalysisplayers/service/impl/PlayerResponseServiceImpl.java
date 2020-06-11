@@ -9,11 +9,12 @@ import com.timmytime.predictoranalysisplayers.model.redis.Event;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerAppearance;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import com.timmytime.predictoranalysisplayers.model.redisson.PlayersResponse;
+import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.repo.mongo.FantasyOutcomeRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.repo.redisson.PlayersResponseRepo;
 import com.timmytime.predictoranalysisplayers.response.FantasyResponse;
-import com.timmytime.predictoranalysisplayers.model.redisson.PlayerResponse;
+import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
 import com.timmytime.predictoranalysisplayers.response.TopPerformerResponse;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
 import com.timmytime.predictoranalysisplayers.transformer.FantasyResponseTransformer;
@@ -23,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -41,6 +41,7 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
     private final PlayerFormRepo playerFormRepo;
     private final TeamFacade teamFacade;
     private final PlayersResponseRepo playersResponseRepo;
+    private final ReceiptManager receiptManager;
     private final DateUtils dateUtils = new DateUtils();
 
     private final FantasyResponseTransformer fantasyResponseTransformer = new FantasyResponseTransformer();
@@ -61,12 +62,14 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
             FantasyOutcomeRepo fantasyOutcomeRepo,
             PlayerFormRepo playerFormRepo,
             PlayersResponseRepo playersResponseRepo,
-            TeamFacade teamFacade
+            TeamFacade teamFacade,
+            ReceiptManager receiptManager
     ){
         this.fantasyOutcomeRepo = fantasyOutcomeRepo;
         this.playerFormRepo = playerFormRepo;
         this.playersResponseRepo = playersResponseRepo;
         this.teamFacade = teamFacade;
+        this.receiptManager = receiptManager;
     }
 
     @Override
@@ -176,8 +179,7 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
     }
 
     @Override
-    @PostConstruct
-    public void load() {
+    public void load(UUID receipt) {
 
         Arrays.asList(ApplicableFantasyLeagues.values())
                 .stream()
@@ -186,19 +188,21 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
                 .stream()
                 .forEach(team ->
                         {
-                            playersResponseRepo.deleteAll(team.getId());
+                            playersResponseRepo.deleteAll(team.getId().toString());
 
                             List<PlayerResponse> playerResponses = new ArrayList<>();
                             playerFormRepo.findByTeam(team.getId()).stream().forEach(player -> playerResponses.add(get(player.getId())));
 
                             try {
-                                playersResponseRepo.save(team.getId(), new PlayersResponse(playerResponses));
+                                playersResponseRepo.save(team.getId().toString(), new PlayersResponse(playerResponses));
                             } catch (JsonProcessingException e) {
                                 log.error("teams players response cache", e);
                             }
 
                         }));
 
+
+        receiptManager.receiptReceived.accept(receipt);
     }
 
 

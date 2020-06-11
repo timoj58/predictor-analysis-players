@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 
 public class Validate implements Callable {
 
@@ -26,7 +27,7 @@ public class Validate implements Callable {
     public Object call() throws Exception {
         log.info("calling validate");
         try {
-            validationService.validate(receipt, Boolean.TRUE);
+            CompletableFuture.runAsync( () -> validationService.validate(receipt, Boolean.TRUE));
         }catch (Exception e){
             log.error("validate", e);
         }

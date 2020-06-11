@@ -4,6 +4,7 @@ import com.timmytime.predictoranalysisplayers.service.TensorflowPredictionServic
 
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 
 public class InitPredict implements Callable {
 
@@ -20,7 +21,7 @@ public class InitPredict implements Callable {
 
     @Override
     public Object call() throws Exception {
-        predictionService.predict(receiptId);
+        CompletableFuture.runAsync( () ->  predictionService.predict(receiptId));
         return null;
     }
 }

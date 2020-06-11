@@ -47,7 +47,6 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
 
     private final PredictionResultUtils predictionResultUtils = new PredictionResultUtils();
-    private final LambdaUtils lambdaUtils = new LambdaUtils();
 
     private Map<UUID, JSONObject> receiptMap = new HashMap<>();
 
@@ -72,7 +71,6 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
     @Override
     public void predict(UUID receipt) {
 
-
         tensorflowFacade.init("goals");
         tensorflowFacade.init("assists");
         tensorflowFacade.init("yellow");
@@ -80,8 +78,6 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         tensorflowFacade.init("conceded");
         tensorflowFacade.init("minutes");
         tensorflowFacade.init("saves");
-
-
 
         receiptMap.clear();
         List<Receipt> receipts = new ArrayList<>();
@@ -105,57 +101,57 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
                         .stream()
                         .forEach(event -> {
 
-                            log.info("predicting event for {} vs {}", event.getHome().getLabel(), event.getAway().getLabel());
+                                log.info("predicting event for {} vs {}", event.getHome().getLabel(), event.getAway().getLabel());
 
-                            List<PlayerForm> homePlayers = playerFormRepo.findByTeam(event.getHome().getId());
-                            List<PlayerForm> awayPlayers = playerFormRepo.findByTeam(event.getAway().getId());
+                                List<PlayerForm> homePlayers = playerFormRepo.findByTeam(event.getHome().getId());
+                                List<PlayerForm> awayPlayers = playerFormRepo.findByTeam(event.getAway().getId());
 
-                            Arrays.asList(FantasyEventTypes.values())
-                                    .stream()
-                                    .filter(f -> f.getPredict())
-                                    .forEach(fantasyEventTypes -> {
-                                        homePlayers.stream()
-                                                .forEach(homePlayer -> {
-                                                   if(homePlayer.isGoalKeeper() && fantasyEventTypes.equals(FantasyEventTypes.SAVES)
-                                                   || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
-                                                       receipts.add(
-                                                               create(homePlayer.getId(), new PlayerEventOutcomeCsv(
-                                                                               homePlayer.getId(),
-                                                                               event.getAway().getId(),
-                                                                               "home"),
-                                                                       fantasyEventTypes,
-                                                                       Boolean.FALSE,
-                                                                       event.getEventDate().getTime(),
-                                                                       receiptIds.get(Boolean.TRUE),
-                                                                       receiptIds.get(Boolean.FALSE))
-                                                       );
-                                                       receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
-                                                       receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
-                                                   }
-                                                });
+                                Arrays.asList(FantasyEventTypes.values())
+                                        .stream()
+                                        .filter(f -> f.getPredict())
+                                        .forEach(fantasyEventTypes -> {
+                                            homePlayers.stream()
+                                                    .forEach(homePlayer -> {
+                                                        if (homePlayer.isGoalKeeper() && fantasyEventTypes.equals(FantasyEventTypes.SAVES)
+                                                                || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
+                                                            receipts.add(
+                                                                    create(homePlayer.getId(), new PlayerEventOutcomeCsv(
+                                                                                    homePlayer.getId(),
+                                                                                    event.getAway().getId(),
+                                                                                    "home"),
+                                                                            fantasyEventTypes,
+                                                                            Boolean.FALSE,
+                                                                            event.getEventDate().getTime(),
+                                                                            receiptIds.get(Boolean.TRUE),
+                                                                            receiptIds.get(Boolean.FALSE))
+                                                            );
+                                                            receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
+                                                            receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                        }
+                                                    });
 
-                                        awayPlayers.stream()
-                                                .forEach(awayPlayer -> {
-                                                    if(awayPlayer.isGoalKeeper() && fantasyEventTypes.equals(FantasyEventTypes.SAVES)
-                                                            || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
-                                                        receipts.add(
-                                                        create(awayPlayer.getId(), new PlayerEventOutcomeCsv(
-                                                                    awayPlayer.getId(),
-                                                                    event.getHome().getId(),
-                                                                    "away"),
-                                                                    fantasyEventTypes,
-                                                                    Boolean.FALSE,
-                                                                    event.getEventDate().getTime(),
-                                                                    receiptIds.get(Boolean.TRUE),
-                                                                    receiptIds.get(Boolean.FALSE))
-                                                    );
-                                                    receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
-                                                    receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
-                                                    }
-                                                });
-                                    });
+                                            awayPlayers.stream()
+                                                    .forEach(awayPlayer -> {
+                                                        if (awayPlayer.isGoalKeeper() && fantasyEventTypes.equals(FantasyEventTypes.SAVES)
+                                                                || !fantasyEventTypes.equals(FantasyEventTypes.SAVES)) {
+                                                            receipts.add(
+                                                                    create(awayPlayer.getId(), new PlayerEventOutcomeCsv(
+                                                                                    awayPlayer.getId(),
+                                                                                    event.getHome().getId(),
+                                                                                    "away"),
+                                                                            fantasyEventTypes,
+                                                                            Boolean.FALSE,
+                                                                            event.getEventDate().getTime(),
+                                                                            receiptIds.get(Boolean.TRUE),
+                                                                            receiptIds.get(Boolean.FALSE))
+                                                            );
+                                                            receiptIds.put(Boolean.TRUE, receiptIds.get(Boolean.FALSE));
+                                                            receiptIds.put(Boolean.FALSE, receiptManager.generateId.get());
+                                                        }
+                                                    });
+                                        });
 
-                        }))
+                            }))
                 );
 
 
@@ -172,6 +168,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         }
 
     }
+
 
     @Override
     public void predict(UUID player, String home, UUID opponent) {
@@ -284,8 +281,6 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
             tensorflowFacade.destroy("red");
 
 
-            //finally shut down (need to review timing of the above).. for now its ok. (plus no issue not clearing dir space, given instance destroyed after)
-            lambdaUtils.destroy();
             return null;
         }
     }

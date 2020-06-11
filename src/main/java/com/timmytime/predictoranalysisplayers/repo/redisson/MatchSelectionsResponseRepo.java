@@ -10,24 +10,34 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class MatchSelectionsResponseRepo {
+public class MatchSelectionsResponseRepo implements IRedissonRepo<MatchSelectionsResponse>{
 
-    private final RedissonClient redissonClient;
+    private final RedissonConnect redissonConnect;
 
     @Autowired
     public MatchSelectionsResponseRepo(
-            @Value("${spring.redis.host}") String host
+            RedissonConnect redissonConnect
     ) {
-        redissonClient = RedissonConnect.connect(host);
+        this.redissonConnect = redissonConnect;
+    }
+
+    @Override
+    public void save(MatchSelectionsResponse matchSelectionsResponse) throws JsonProcessingException {
+
     }
 
     public void save(String competition, MatchSelectionsResponse matchSelectionsResponse) throws JsonProcessingException {
 
-        redissonClient.getSet("MatchSelectionsResponse_"+competition, new org.redisson.client.codec.StringCodec())
+        redissonConnect.connect().getSet("MatchSelectionsResponse_"+competition, new org.redisson.client.codec.StringCodec())
                 .add(new ObjectMapper().writeValueAsString(matchSelectionsResponse));
     }
 
+    @Override
+    public void deleteAll() {
+
+    }
+
     public void deleteAll(String competition){
-        redissonClient.getSet("MatchSelectionsResponse_"+competition, new org.redisson.client.codec.StringCodec()).delete();
+        redissonConnect.connect().getSet("MatchSelectionsResponse_"+competition, new org.redisson.client.codec.StringCodec()).delete();
     }
 }

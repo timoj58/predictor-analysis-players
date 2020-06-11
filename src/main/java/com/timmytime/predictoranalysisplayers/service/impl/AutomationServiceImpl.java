@@ -54,6 +54,7 @@ public class AutomationServiceImpl implements AutomationService {
        //TODO this cant be done daily.  needs to be seasonal - UUID train = receiptManager.generateId.get();
         UUID predict = receiptManager.generateId.get();
         UUID loadCache = receiptManager.generateId.get();
+        UUID loadMatchCache = receiptManager.generateId.get();
 
         List<Receipt> receipts = new ArrayList<>();
 
@@ -89,11 +90,46 @@ public class AutomationServiceImpl implements AutomationService {
         receipts.add(receiptManager.generateReceipt.apply(
                 loadCache,
                 new ReceiptTask(
-                        new LoadCache(playerResponseService),
+                        new LoadPlayerResponseCache(playerResponseService, loadCache),
+                        loadMatchCache,timeout
+                )
+        ));
+
+        receipts.add(receiptManager.generateReceipt.apply(
+                loadMatchCache,
+                new ReceiptTask(
+                        new LoadMatchResponseCache(competitionService),
                         null,timeout
                 )
         ));
 
+
+        receiptManager.sendReceipt.accept(receipts.get(0));
+    }
+
+    @Override
+    public void loadLambdaCaches() {
+
+        List<Receipt> receipts = new ArrayList<>();
+
+        UUID loadCache = receiptManager.generateId.get();
+        UUID loadMatchCache = receiptManager.generateId.get();
+
+      /*  receipts.add(receiptManager.generateReceipt.apply(
+                loadCache,
+                new ReceiptTask(
+                        new LoadPlayerResponseCache(playerResponseService, loadCache),
+                        loadMatchCache,timeout
+                )
+        ));
+*/
+        receipts.add(receiptManager.generateReceipt.apply(
+                loadMatchCache,
+                new ReceiptTask(
+                        new LoadMatchResponseCache(competitionService),
+                        null,timeout
+                )
+        ));
 
         receiptManager.sendReceipt.accept(receipts.get(0));
     }

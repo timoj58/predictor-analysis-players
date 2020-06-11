@@ -1,17 +1,22 @@
 package com.timmytime.predictoranalysisplayers.transformer;
 
-import com.timmytime.predictoranalysisplayers.model.redisson.MatchSelectionResponse;
-import com.timmytime.predictoranalysisplayers.model.redisson.PlayerResponse;
+import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
+import com.timmytime.predictoranalysisplayers.response.MatchSelectionResponse;
+import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
 import com.timmytime.predictoranalysisplayers.response.MatchPrediction;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class MatchSelectionResponseTransformer {
+    private static final Logger log = LoggerFactory.getLogger(MatchSelectionResponseTransformer.class);
 
     private Function<Map<Integer, Double>, Double> score = predictions -> {
 
@@ -21,6 +26,15 @@ public class MatchSelectionResponseTransformer {
 
         return predictions.values().stream().mapToDouble(m -> m).sum();
     };
+
+    private BiFunction<List<PlayerEventScore>, FantasyEventTypes, MatchSelectionResponse> create = (playerEventScores, fantasyEventTypes) ->
+            new MatchSelectionResponse(
+                    fantasyEventTypes.name().toLowerCase(),
+                    playerEventScores.stream()
+                            .filter(f -> f.score > 0.0)
+                            .sorted(Comparator.comparing(PlayerEventScore::getScore).reversed())
+                            .map(m -> new PlayerResponse(m.getPlayerResponse(), m.score, fantasyEventTypes.name().toLowerCase()))
+                            .collect(Collectors.toList()));
 
 
     public Function<MatchPrediction, List<MatchSelectionResponse>> transform = matchPrediction -> {
@@ -35,38 +49,49 @@ public class MatchSelectionResponseTransformer {
 
         List<PlayerEventScore> goals = new ArrayList<>();
         List<PlayerEventScore> assists = new ArrayList<>();
+        List<PlayerEventScore> saves = new ArrayList<>();
         List<PlayerEventScore> yellows = new ArrayList<>();
 
         //ok the hard part...so wait.  a bit.  need to filter the map..on combined totals pretty much.
         //or map the lot to a simple map of <PlayerId, Value> or each event. then select top 5 sorted....
         combined.stream()
                 .forEach(player -> {
-                    //now fuck about adding them all in
+
                     goals.add(
                             new PlayerEventScore(player, player.getFantasyResponse()
                             .stream()
-                            .mapToDouble(m -> score.apply(m.getGoals())).findFirst().getAsDouble())
+                            .mapToDouble(m -> score.apply(m.getGoals())).findFirst().orElse(0.0))
                     );
 
                     assists.add(
                             new PlayerEventScore(player, player.getFantasyResponse()
                                     .stream()
-                                    .mapToDouble(m -> score.apply(m.getAssists())).findFirst().getAsDouble())
+                                    .mapToDouble(m -> score.apply(m.getAssists())).findFirst().orElse(0.0))
                     );
+
+                    if(player.getSaves() != null) {
+                        saves.add(
+                                new PlayerEventScore(player, player.getFantasyResponse()
+                                        .stream()
+                                        .mapToDouble(m -> m.getSaves()).findFirst().orElse(0.0))
+                        );
+                    }
 
                     yellows.add(
                             new PlayerEventScore(player, player.getFantasyResponse()
                                     .stream()
-                                    .mapToDouble(m -> score.apply(m.getYellowCards())).findFirst().getAsDouble())
+                                    .mapToDouble(m -> score.apply(m.getYellowCards())).findFirst().orElse(0.0))
                     );
 
                 });
 
 
 
-        matchSelectionResponses.add(new MatchSelectionResponse("goals", goals.stream().sorted((o1,o2) -> o2.score.compareTo(o1.score)).limit(5).map(m -> m.playerResponse).collect(Collectors.toList())));
-        matchSelectionResponses.add(new MatchSelectionResponse("assists", assists.stream().sorted((o1,o2) -> o2.score.compareTo(o1.score)).limit(5).map(m -> m.playerResponse).collect(Collectors.toList())));
-        matchSelectionResponses.add(new MatchSelectionResponse("yellow", yellows.stream().sorted((o1,o2) -> o2.score.compareTo(o1.score)).limit(5).map(m -> m.playerResponse).collect(Collectors.toList())));
+        matchSelectionResponses.add(create.apply(goals, FantasyEventTypes.GOALS));
+        matchSelectionResponses.add(create.apply(assists, FantasyEventTypes.ASSISTS));
+        matchSelectionResponses.add(create.apply(saves, FantasyEventTypes.SAVES));
+        matchSelectionResponses.add(create.apply(yellows, FantasyEventTypes.YELLOW_CARD));
+
 
         return matchSelectionResponses;
     };
