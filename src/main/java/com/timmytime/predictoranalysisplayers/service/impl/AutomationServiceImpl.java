@@ -58,24 +58,23 @@ public class AutomationServiceImpl implements AutomationService {
 
         List<Receipt> receipts = new ArrayList<>();
 
-        receipts.add(receiptManager.generateReceipt.apply(
-                load,
-                new ReceiptTask(
-                        new Load(competitionService, load),
-                        validate,timeout
-                )
-        ));
+            receipts.add(receiptManager.generateReceipt.apply(
+                    load,
+                    new ReceiptTask(
+                            new Load(competitionService, load),
+                            validate
+                    )
+            ));
 
 
-        receipts.add(
-                receiptManager.generateReceipt.apply(
-                        validate,
-                        new ReceiptTask(
-                                new Validate(validationService,validate),
-                                predict, timeout)
-                )
-        );
-
+            receipts.add(
+                    receiptManager.generateReceipt.apply(
+                            validate,
+                            new ReceiptTask(
+                                    new Validate(validationService, validate),
+                                    predict)
+                    )
+            );
 
 
 
@@ -83,7 +82,7 @@ public class AutomationServiceImpl implements AutomationService {
                 predict,
                 new ReceiptTask(
                         new InitPredict(predictionService, predict),
-                        loadCache,timeout
+                        loadCache
                 )
         ));
 
@@ -91,7 +90,7 @@ public class AutomationServiceImpl implements AutomationService {
                 loadCache,
                 new ReceiptTask(
                         new LoadPlayerResponseCache(playerResponseService, loadCache),
-                        loadMatchCache,timeout
+                        loadMatchCache
                 )
         ));
 
@@ -99,7 +98,7 @@ public class AutomationServiceImpl implements AutomationService {
                 loadMatchCache,
                 new ReceiptTask(
                         new LoadMatchResponseCache(competitionService),
-                        null,timeout
+                        null
                 )
         ));
 

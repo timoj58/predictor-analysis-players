@@ -9,6 +9,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.index.Indexed;
 
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class PlayerForm {
     @Indexed
     private UUID team;
     private List<PlayerAppearance> playerAppearances = new ArrayList<>();
+    private long lastAppearance;
 
     public PlayerForm(){
 
@@ -33,6 +35,7 @@ public class PlayerForm {
         this.label = player.getLabel();
         this.team  = player.getLatestTeam();
         this.id = player.getId();
+        this.lastAppearance = player.getLastAppearance().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
     }
 
     public Boolean isGoalKeeper(){

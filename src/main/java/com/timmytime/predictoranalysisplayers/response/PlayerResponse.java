@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,7 +33,6 @@ public class PlayerResponse implements Serializable {
 
     private Double fantasyEventScore; //saves time.  also should use this for the mobile
     private String fantasyEventKey; //saves time.  also should use this for the mobile
-
 
     private List<FantasyResponse> fantasyResponse = new ArrayList<>();
 

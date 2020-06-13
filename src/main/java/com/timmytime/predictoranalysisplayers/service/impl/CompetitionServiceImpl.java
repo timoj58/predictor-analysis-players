@@ -125,15 +125,11 @@ public class CompetitionServiceImpl implements CompetitionService {
         matchPrediction.setHomeLabel(teamFacade.findById(home).get().getLabel());
         matchPrediction.setAwayLabel(teamFacade.findById(away).get().getLabel());
 
-
         playerFormService.getPlayers(home).getPlayers()
-                .stream()
-                .forEach(player -> matchPrediction.getHomePlayers().add(playerResponseService.get(player.getId())));
+                    .forEach(player -> matchPrediction.getHomePlayers().add(playerResponseService.get(player.getId())));
 
         playerFormService.getPlayers(away).getPlayers()
-                .stream()
-                .forEach(player -> matchPrediction.getAwayPlayers().add(playerResponseService.get(player.getId())));
-
+                    .forEach(player -> matchPrediction.getAwayPlayers().add(playerResponseService.get(player.getId())));
         return matchPrediction;
     }
 

@@ -24,11 +24,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 @Service("tensorflowPredictionService")
 public class TensorflowPredictionServiceImpl implements TensorflowPredictionService {
@@ -103,10 +102,16 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
                                 log.info("predicting event for {} vs {}", event.getHome().getLabel(), event.getAway().getLabel());
 
-                                List<PlayerForm> homePlayers = playerFormRepo.findByTeam(event.getHome().getId());
-                                List<PlayerForm> awayPlayers = playerFormRepo.findByTeam(event.getAway().getId());
+                                List<PlayerForm> homePlayers = playerFormRepo.findByTeam(event.getHome().getId())
+                                        .stream()
+                                        .filter(f -> f.getLastAppearance() > LocalDate.now().minusMonths(6).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+                                        .collect(Collectors.toList());
+                                List<PlayerForm> awayPlayers = playerFormRepo.findByTeam(event.getAway().getId())
+                                        .stream()
+                                        .filter(f -> f.getLastAppearance() > LocalDate.now().minusMonths(6).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+                                        .collect(Collectors.toList());
 
-                                Arrays.asList(FantasyEventTypes.values())
+                            Arrays.asList(FantasyEventTypes.values())
                                         .stream()
                                         .filter(f -> f.getPredict())
                                         .forEach(fantasyEventTypes -> {
@@ -158,7 +163,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         receipts.add(
                 receiptManager.generateReceipt.apply(
                         receiptIds.get(Boolean.TRUE),
-                        new ReceiptTask(new SaveEvents(), receipt, timeout)
+                        new ReceiptTask(new SaveEvents(), receipt)
                 )
         );
 

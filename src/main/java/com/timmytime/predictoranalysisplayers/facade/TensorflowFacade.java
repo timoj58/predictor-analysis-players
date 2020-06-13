@@ -7,8 +7,10 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 @Component
@@ -98,24 +100,20 @@ public class TensorflowFacade extends RestTemplateHelper {
                         .getBody());
     }
 
-    public JSONObject init(String type){
-        return new JSONObject(
-                restTemplate.postForEntity(
+    public void init(String type){
+
+        log.info("init the {} models", type);
+                restTemplate.put(
                         mlHost + initUrl
                                 .replace("<type>", type),
-                         null,
-                        String.class)
-                        .getBody());
+                        new HttpEntity<>(null, null), new HashMap<>());
     }
 
-    public JSONObject destroy(String type){
-        return new JSONObject(
-                restTemplate.postForEntity(
+    public void destroy(String type){
+                restTemplate.put(
                         mlHost + destroyUrl
                                 .replace("<type>", type),
-                       null,
-                        String.class)
-                        .getBody());
+                        new HttpEntity<>(null, null), new HashMap<>());
     }
 
 

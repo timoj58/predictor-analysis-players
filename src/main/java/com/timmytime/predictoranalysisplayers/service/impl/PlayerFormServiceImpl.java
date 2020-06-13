@@ -104,7 +104,9 @@ public class PlayerFormServiceImpl implements PlayerFormService {
 
         PlayersByTeam playersByCompetition = new PlayersByTeam();
         playersByCompetition.setTeam(team);
-        playersByCompetition.setPlayers(playerFormRepo.findByTeam(team).stream().map(Player::new).collect(Collectors.toList()));
+        playersByCompetition.setPlayers(playerFormRepo.findByTeam(team).stream().map(Player::new)
+                .filter(f -> f.getLastAppearance().isAfter(LocalDate.now().minusMonths(6)))
+                .collect(Collectors.toList()));
 
         return playersByCompetition;
     }

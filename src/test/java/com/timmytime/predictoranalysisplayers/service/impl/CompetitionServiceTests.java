@@ -24,6 +24,7 @@ import lombok.Setter;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -76,6 +77,7 @@ public class CompetitionServiceTests {
 
         Player player = new Player();
         player.setId(UUID.randomUUID());
+        player.setLastAppearance(LocalDate.now());
 
         PlayersByTeam playersByTeam = new PlayersByTeam();
         playersByTeam.setTeam(team.getId());
@@ -112,8 +114,6 @@ public class CompetitionServiceTests {
 
     @Test
     public void loadMatchSelections(){
-
-
         competitionService.loadMatches();
 
         assertTrue(

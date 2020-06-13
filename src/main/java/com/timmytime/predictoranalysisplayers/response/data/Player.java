@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Getter
@@ -28,6 +30,8 @@ public class Player {
         this.id = playerForm.getId();
         this.label = playerForm.getLabel();
         this.latestTeam = playerForm.getTeam();
+        lastAppearance =
+                Instant.ofEpochMilli(playerForm.getLastAppearance()).atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
 
