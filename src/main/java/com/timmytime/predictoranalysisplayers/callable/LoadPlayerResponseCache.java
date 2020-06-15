@@ -21,6 +21,7 @@ public class LoadPlayerResponseCache implements Callable {
 
     @Override
     public Object call() throws Exception {
+        int i;
         CompletableFuture.runAsync( () -> playerResponseService.load(receipt));
          return null;
     }

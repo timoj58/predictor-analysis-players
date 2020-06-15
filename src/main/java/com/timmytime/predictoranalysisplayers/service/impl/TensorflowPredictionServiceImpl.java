@@ -163,7 +163,7 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
         receipts.add(
                 receiptManager.generateReceipt.apply(
                         receiptIds.get(Boolean.TRUE),
-                        new ReceiptTask(new SaveEvents(), receipt)
+                        new ReceiptTask(new SaveEvents(receipt), receipt)
                 )
         );
 
@@ -174,42 +174,6 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
     }
 
-
-    @Override
-    public void predict(UUID player, String home, UUID opponent) {
-
-        //this is for testing at present.....will use above call in future.
-        receiptMap.clear();
-
-
-        UUID goalsReceipt = receiptManager.generateId.get();
-        UUID assistsReceipt = receiptManager.generateId.get();
-        UUID minutesReceipt = receiptManager.generateId.get();
-        UUID concededReceipt = receiptManager.generateId.get();
-        UUID savesReceipt = receiptManager.generateId.get();
-        UUID redReceipt = receiptManager.generateId.get();
-        UUID yellowReceipt = receiptManager.generateId.get();
-        UUID completed = receiptManager.generateId.get();
-
-
-        List<Receipt> receipts = new ArrayList<>();
-
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS,Boolean.TRUE, System.currentTimeMillis(), goalsReceipt, assistsReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.ASSISTS,Boolean.TRUE, System.currentTimeMillis(), assistsReceipt, minutesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.MINUTES,Boolean.TRUE, System.currentTimeMillis(), minutesReceipt, concededReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.GOALS_CONCEDED,Boolean.TRUE, System.currentTimeMillis(),concededReceipt, savesReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.SAVES,Boolean.TRUE, System.currentTimeMillis(),savesReceipt, redReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.RED_CARD,Boolean.TRUE, System.currentTimeMillis(),redReceipt, yellowReceipt));
-        receipts.add(create(player, new PlayerEventOutcomeCsv(player, opponent, home), FantasyEventTypes.YELLOW_CARD,Boolean.TRUE, System.currentTimeMillis(),yellowReceipt, completed));
-        receipts.add(
-                receiptManager.generateReceipt.apply(
-                        completed,
-                        new ReceiptTask(new SaveEvents(), null, timeout)
-                       )
-        );
-
-        receiptManager.sendReceipt.accept(receipts.get(0));
-    }
 
     @Override
     public void receiveReceipt(JSONObject data, UUID receipt) {
@@ -249,6 +213,14 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
 
     public class SaveEvents implements Callable{
 
+        private final UUID receipt;
+
+        public SaveEvents(
+                UUID receipt
+        ){
+            this.receipt = receipt;
+        }
+
         @Override
         public Object call() {
 
@@ -277,6 +249,8 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
             }
 
 
+            log.info("clearing machine models");
+
             tensorflowFacade.destroy("goals");
             tensorflowFacade.destroy("saves");
             tensorflowFacade.destroy("assists");
@@ -285,6 +259,9 @@ public class TensorflowPredictionServiceImpl implements TensorflowPredictionServ
             tensorflowFacade.destroy("yellow");
             tensorflowFacade.destroy("red");
 
+            //ok forgot to fire a new receipt lol.....ffs
+
+            receiptManager.receiptReceived.accept(receipt);
 
             return null;
         }

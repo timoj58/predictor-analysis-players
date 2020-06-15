@@ -36,7 +36,7 @@ public class ValidationServiceImpl implements ValidationService {
 
     private final DateUtils dateUtils = new DateUtils();
     private final PredictionResultUtils predictionResultUtils = new PredictionResultUtils();
-    private final LambdaUtils lambdaUtils = new LambdaUtils();
+    private final LambdaUtils lambdaUtils;
 
     @Value("${prediction.cutoff}")
     private Integer predictionCutOff;
@@ -46,11 +46,13 @@ public class ValidationServiceImpl implements ValidationService {
             PlayerFacade playerFacade,
             PlayerFormRepo playerFormRepo,
             FantasyOutcomeRepo fantasyOutcomeRepo,
+            LambdaUtils lambdaUtils,
             ReceiptManager receiptManager
     ){
         this.playerFacade = playerFacade;
         this.playerFormRepo = playerFormRepo;
         this.fantasyOutcomeRepo = fantasyOutcomeRepo;
+        this.lambdaUtils = lambdaUtils;
         this.receiptManager = receiptManager;
     }
 
@@ -62,6 +64,8 @@ public class ValidationServiceImpl implements ValidationService {
     @Override
     public void validate(UUID receiptId, Boolean startMachineLearning) {
 
+        //not sure of this -> ie should a prediction under the cutoff, be classed as a success if it fails?
+        //overall.  not sure of the value of this yet.  leave as is, can alter and re-validate all records under new rules, in future.
         log.info("starting validation");
         if(startMachineLearning) {
             lambdaUtils.startMachineLearning();

@@ -51,18 +51,6 @@ public class TensorflowPredictController {
     }
 
 
-    @RequestMapping(
-            value = "game/{player-id}",
-            method = RequestMethod.PUT)
-    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
-    public void predictions(
-            @PathVariable("player-id") UUID playerId,
-            @RequestParam("home") String home,
-            @RequestParam("opponent") UUID opponent) {
-
-        tensorflowPredictionService.predict(playerId, home, opponent);
-    }
-
 
     //note mainly for testing, will be in redis etc for the mobile app find gateway / lambda
     @RequestMapping(

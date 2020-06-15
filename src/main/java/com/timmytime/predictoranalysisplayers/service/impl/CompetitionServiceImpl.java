@@ -46,44 +46,22 @@ public class CompetitionServiceImpl implements CompetitionService {
     private final TeamFacade teamFacade;
     private final PlayerFormService playerFormService;
     private final ReceiptManager receiptManager;
-    private final PlayerResponseService playerResponseService;
-    private final EventFacade eventFacade;
     private final CompetitionTeamsResponseRepo competitionTeamsResponseRepo;
-    private final IRedissonRepo matchSelectionsResponseRepo;
-    private final IRedissonRepo topSelectionsResponseRepo;
-
-    private final MatchSelectionResponseTransformer matchSelectionResponseTransformer = new MatchSelectionResponseTransformer();
 
     private Map<String, Boolean> loadingStatus = new HashMap<>();
-
-    private BiFunction<MatchSelectionsResponse, FantasyEventTypes, List<PlayerResponse>> process = (matchSelectionsResponse, fantasyEventTypes) ->
-        matchSelectionsResponse.getMatchSelectionResponses()
-                .stream()
-                .filter(f -> f.getEvent().equals(fantasyEventTypes.name().toLowerCase()))
-                .findFirst()
-                .orElse(new MatchSelectionResponse()).getPlayerResponses();
-
 
     @Autowired
     public CompetitionServiceImpl(
             PlayerFacade playerFacade,
             TeamFacade teamFacade,
             PlayerFormService playerFormService,
-            PlayerResponseService playerResponseService,
             CompetitionTeamsResponseRepo competitionTeamsResponseRepo,
-            EventFacade eventFacade,
-            IRedissonRepo matchSelectionsResponseRepo,
-            IRedissonRepo topSelectionsResponseRepo,
             ReceiptManager receiptManager
     ) {
         this.playerFacade = playerFacade;
         this.teamFacade = teamFacade;
         this.playerFormService = playerFormService;
-        this.playerResponseService = playerResponseService;
-        this.eventFacade = eventFacade;
         this.competitionTeamsResponseRepo = competitionTeamsResponseRepo;
-        this.matchSelectionsResponseRepo = matchSelectionsResponseRepo;
-        this.topSelectionsResponseRepo = topSelectionsResponseRepo;
         this.receiptManager = receiptManager;
     }
 
@@ -115,93 +93,6 @@ public class CompetitionServiceImpl implements CompetitionService {
                 );
 
         new CompetitionWatcher(() -> loadingStatus.values().stream().allMatch(f -> f == Boolean.FALSE), receiptId).start();
-
-    }
-
-    @Override
-    public MatchPrediction get(UUID home, UUID away) {
-        MatchPrediction matchPrediction = new MatchPrediction();
-
-        matchPrediction.setHomeLabel(teamFacade.findById(home).get().getLabel());
-        matchPrediction.setAwayLabel(teamFacade.findById(away).get().getLabel());
-
-        playerFormService.getPlayers(home).getPlayers()
-                    .forEach(player -> matchPrediction.getHomePlayers().add(playerResponseService.get(player.getId())));
-
-        playerFormService.getPlayers(away).getPlayers()
-                    .forEach(player -> matchPrediction.getAwayPlayers().add(playerResponseService.get(player.getId())));
-        return matchPrediction;
-    }
-
-    @Override
-    public void loadMatches() {
-        //load the top picks to redisson cache for matches.
-        Arrays.asList(ApplicableFantasyLeagues.values())
-                .stream()
-                .forEach(league -> {
-
-                    //also need to work the top picks...keeping 20 per event
-                    TopSelectionsResponse topSelectionsGoalsResponse = new TopSelectionsResponse(FantasyEventTypes.GOALS.name().toLowerCase(), new ArrayList<>()); //should be using enums...
-                    TopSelectionsResponse topSelectionsAssistsResponse = new TopSelectionsResponse(FantasyEventTypes.ASSISTS.name().toLowerCase(), new ArrayList<>());
-                    TopSelectionsResponse topSelectionsSavesResponse = new TopSelectionsResponse(FantasyEventTypes.SAVES.name().toLowerCase(), new ArrayList<>());
-                    TopSelectionsResponse topSelectionsYellowsResponse = new TopSelectionsResponse(FantasyEventTypes.YELLOW_CARD.name().toLowerCase(), new ArrayList<>());
-
-                    matchSelectionsResponseRepo.deleteAll(league.name().toLowerCase());
-                    topSelectionsResponseRepo.deleteAll(league.name().toLowerCase());
-
-                    eventFacade.upcomingEvents(league.getCountry(), league.name().toLowerCase())
-                            .stream()
-                            .forEach(events -> events.getUpcomingEventResponses()
-                                    .stream()
-                                    .forEach(event -> {
-
-                                        log.info("processing {} vs {}", event.getHome().getLabel(), event.getAway().getLabel());
-
-                                        MatchSelectionsResponse matchSelectionsResponse
-                                                =   new MatchSelectionsResponse(
-                                                event.getHome().getId(),
-                                                event.getAway().getId(),
-                                                matchSelectionResponseTransformer.transform.apply(
-                                                        get(
-                                                                event.getHome().getId(),
-                                                                event.getAway().getId())
-                                                )
-                                        );
-
-                                        //process top selections
-                                        topSelectionsGoalsResponse.process(process.apply(matchSelectionsResponse, FantasyEventTypes.GOALS));
-                                        topSelectionsAssistsResponse.process(process.apply(matchSelectionsResponse, FantasyEventTypes.ASSISTS));
-                                        topSelectionsSavesResponse.process(process.apply(matchSelectionsResponse, FantasyEventTypes.SAVES));
-                                        topSelectionsYellowsResponse.process(process.apply(matchSelectionsResponse, FantasyEventTypes.YELLOW_CARD));
-
-
-                                        try {
-                                                    matchSelectionsResponseRepo.save(
-                                                            league.name().toLowerCase(),
-                                                            matchSelectionsResponse
-                                                    );
-                                                } catch (JsonProcessingException e) {
-                                                    log.error("match selections", e);
-                                                } catch (Exception e){
-                                                    log.error("something else", e);
-                                                }
-                                            }
-                                    )
-                            );
-
-                    //save top selections
-                    try {
-                        topSelectionsResponseRepo.save(league.name().toLowerCase(), topSelectionsGoalsResponse);
-                        topSelectionsResponseRepo.save(league.name().toLowerCase(), topSelectionsAssistsResponse);
-                        topSelectionsResponseRepo.save(league.name().toLowerCase(), topSelectionsSavesResponse);
-                        topSelectionsResponseRepo.save(league.name().toLowerCase(), topSelectionsYellowsResponse);
-
-                    } catch (JsonProcessingException e) {
-                        log.error("match selections", e);
-                    } catch (Exception e){
-                        log.error("something else", e);
-                    }
-                });
 
     }
 

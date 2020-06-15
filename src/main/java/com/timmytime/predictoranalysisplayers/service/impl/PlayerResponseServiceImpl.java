@@ -181,6 +181,8 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
     @Override
     public void load(UUID receipt) {
 
+        log.info("loading player responses");
+
         Arrays.asList(ApplicableFantasyLeagues.values())
                 .stream()
                 .forEach(competition ->

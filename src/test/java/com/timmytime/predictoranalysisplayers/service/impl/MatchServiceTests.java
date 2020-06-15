@@ -7,7 +7,9 @@ import com.timmytime.predictoranalysisplayers.facade.PlayerFacade;
 import com.timmytime.predictoranalysisplayers.facade.TeamFacade;
 import com.timmytime.predictoranalysisplayers.model.redisson.MatchSelectionsResponse;
 import com.timmytime.predictoranalysisplayers.model.redisson.TopSelectionsResponse;
+import com.timmytime.predictoranalysisplayers.receipt.Receipt;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
+import com.timmytime.predictoranalysisplayers.receipt.ReceiptUtils;
 import com.timmytime.predictoranalysisplayers.repo.redisson.CompetitionTeamsResponseRepo;
 import com.timmytime.predictoranalysisplayers.repo.redisson.IRedissonRepo;
 import com.timmytime.predictoranalysisplayers.response.FantasyResponse;
@@ -19,6 +21,7 @@ import com.timmytime.predictoranalysisplayers.response.data.UpcomingCompetitionE
 import com.timmytime.predictoranalysisplayers.response.data.UpcomingEventResponse;
 import com.timmytime.predictoranalysisplayers.service.PlayerFormService;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
+import com.timmytime.predictoranalysisplayers.util.LambdaUtils;
 import lombok.Getter;
 import lombok.Setter;
 import org.junit.Before;
@@ -31,29 +34,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class CompetitionServiceTests {
+public class MatchServiceTests {
 
-    PlayerFacade playerFacade = mock(PlayerFacade.class);
     TeamFacade teamFacade = mock(TeamFacade.class);
     PlayerFormService playerFormService = mock(PlayerFormService.class);
     PlayerResponseService playerResponseService = mock(PlayerResponseService.class);
-    CompetitionTeamsResponseRepo competitionTeamsResponseRepo = mock(CompetitionTeamsResponseRepo.class);
     EventFacade eventFacade = mock(EventFacade.class);
     MatchSelectionsRepo matchSelectionsResponseRepo = new MatchSelectionsRepo();
     TopSelectionRepo topSelectionsResponseRepo = new TopSelectionRepo();
-    ReceiptManager receiptManager = mock(ReceiptManager.class);
+    ReceiptManager receiptManager = new ReceiptManager(new ReceiptUtils());
 
-    private final CompetitionServiceImpl competitionService
-            = new CompetitionServiceImpl(
-                    playerFacade,
-            teamFacade,
+    private final MatchServiceImpl competitionService
+            = new MatchServiceImpl(
+                    teamFacade,
+            eventFacade,
             playerFormService,
             playerResponseService,
-            competitionTeamsResponseRepo,
-            eventFacade,
             matchSelectionsResponseRepo,
-            topSelectionsResponseRepo,
-            receiptManager
+            topSelectionsResponseRepo
     );
 
     @Before

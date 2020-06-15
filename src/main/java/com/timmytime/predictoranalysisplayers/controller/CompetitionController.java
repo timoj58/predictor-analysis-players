@@ -5,6 +5,7 @@ import com.timmytime.predictoranalysisplayers.model.redis.PlayerForm;
 import com.timmytime.predictoranalysisplayers.response.MatchPrediction;
 import com.timmytime.predictoranalysisplayers.response.TopPerformerResponse;
 import com.timmytime.predictoranalysisplayers.service.CompetitionService;
+import com.timmytime.predictoranalysisplayers.service.MatchService;
 import com.timmytime.predictoranalysisplayers.service.PlayerResponseService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,8 @@ public class CompetitionController {
     @Autowired
     private CompetitionService competitionService;
     @Autowired
+    private MatchService matchService;
+    @Autowired
     private PlayerResponseService playerResponseService;
 
     @RequestMapping(
@@ -34,7 +37,7 @@ public class CompetitionController {
     public ResponseEntity<MatchPrediction> getMatchPrediction(
             @RequestParam("home") UUID home,
             @RequestParam("away") UUID away){
-       return ResponseEntity.ok(competitionService.get(home, away));
+       return ResponseEntity.ok(matchService.get(home, away));
     }
 
 

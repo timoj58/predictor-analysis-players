@@ -5,6 +5,7 @@ import com.timmytime.predictoranalysisplayers.receipt.Receipt;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.receipt.ReceiptTask;
 import com.timmytime.predictoranalysisplayers.service.*;
+import com.timmytime.predictoranalysisplayers.util.LambdaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,8 @@ public class AutomationServiceImpl implements AutomationService {
     private final TensorflowPredictionService predictionService;
     private final ValidationService validationService;
     private final PlayerResponseService playerResponseService;
+    private final MatchService matchService;
+    private final LambdaUtils lambdaUtils;
 
     @Autowired
     public AutomationServiceImpl(
@@ -37,7 +40,9 @@ public class AutomationServiceImpl implements AutomationService {
             TensorflowTrainingService trainingService,
             TensorflowPredictionService predictionService,
             ValidationService validationService,
-            PlayerResponseService playerResponseService
+            PlayerResponseService playerResponseService,
+            MatchService matchService,
+            LambdaUtils lambdaUtils
     ) {
         this.receiptManager = receiptManager;
         this.competitionService = competitionService;
@@ -45,6 +50,8 @@ public class AutomationServiceImpl implements AutomationService {
         this.predictionService = predictionService;
         this.validationService = validationService;
         this.playerResponseService = playerResponseService;
+        this.matchService = matchService;
+        this.lambdaUtils = lambdaUtils;
     }
 
     @Override
@@ -97,7 +104,7 @@ public class AutomationServiceImpl implements AutomationService {
         receipts.add(receiptManager.generateReceipt.apply(
                 loadMatchCache,
                 new ReceiptTask(
-                        new LoadMatchResponseCache(competitionService),
+                        new LoadMatchResponseCache(matchService, lambdaUtils, receiptManager, loadMatchCache),
                         null
                 )
         ));
@@ -114,18 +121,18 @@ public class AutomationServiceImpl implements AutomationService {
         UUID loadCache = receiptManager.generateId.get();
         UUID loadMatchCache = receiptManager.generateId.get();
 
-      /*  receipts.add(receiptManager.generateReceipt.apply(
+        receipts.add(receiptManager.generateReceipt.apply(
                 loadCache,
                 new ReceiptTask(
                         new LoadPlayerResponseCache(playerResponseService, loadCache),
                         loadMatchCache,timeout
                 )
         ));
-*/
+
         receipts.add(receiptManager.generateReceipt.apply(
                 loadMatchCache,
                 new ReceiptTask(
-                        new LoadMatchResponseCache(competitionService),
+                        new LoadMatchResponseCache(matchService, lambdaUtils, receiptManager, loadMatchCache),
                         null,timeout
                 )
         ));
