@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.service.impl;
 
+import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import com.timmytime.predictoranalysisplayers.facade.PlayerFacade;
 import com.timmytime.predictoranalysisplayers.model.mongo.FantasyOutcome;
 import com.timmytime.predictoranalysisplayers.model.redis.PlayerAppearance;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -59,6 +61,11 @@ public class ValidationServiceImpl implements ValidationService {
     /*
      TODO tidy up and tests, this is just to get some things validated, for now not important
      but better than leaving lots of events open.
+
+     probably can use this, to show the number of successful ratings, success is true.  given cutoff.
+
+     however we also include false below.  so need to refactor this in.  and rebuild.
+
      */
 
     @Override
@@ -76,6 +83,7 @@ public class ValidationServiceImpl implements ValidationService {
         Map<UUID, List<FantasyOutcome>>
         playerEvents = fantasyOutcomeRepo.findBySuccessNull()
                 .stream()
+                .filter(f -> f.getEventDate().isBefore(LocalDateTime.now()))
                 .collect(groupingBy(FantasyOutcome::getPlayerId));
 
        playerEvents.keySet().stream()
@@ -106,6 +114,7 @@ public class ValidationServiceImpl implements ValidationService {
                                                        log.info("validating {}", playerForm.getLabel());
                                                        log.info("matched appearance {} vs {}", then.getHomeTeam(), then.getAwayTeam());
 
+                                                       //we only have events where they exist.  so...
                                                        eventItems.stream()
                                                                .forEach(item -> {
                                                                    item.setSuccess(validateEvent(item, then));
@@ -163,17 +172,27 @@ public class ValidationServiceImpl implements ValidationService {
             case GOALS:
             case ASSISTS:
                 playerAppearance.getStatMetrics().stream().filter(f -> f.getEventType().equals(fantasyOutcome.getFantasyEventType()))
-                        .findFirst().ifPresent(stat ->
+                        .findFirst().ifPresentOrElse(stat ->
 
                         predictionResultUtils.getScores.apply(fantasyOutcome.getPrediction()).values().stream().findFirst()
                                 .ifPresent(check -> {
-                                    if(stat.getValue() > 0
+                                    if((stat.getValue().intValue() > 0
                                             &&
-                                            Double.valueOf(predictionCutOff) <= check){
+                                            Double.valueOf(predictionCutOff) <= check)
+                                    || (stat.getValue().intValue() == 0
+                                            &&
+                                            check < Double.valueOf(predictionCutOff))){
                                         result.put("result", Boolean.TRUE);
                                     }
                                 })
-                );
+                ,() ->
+                            predictionResultUtils.getScores.apply(fantasyOutcome.getPrediction()).values().stream().findFirst()
+                                    .ifPresent(check -> {
+                                        if(check < Double.valueOf(predictionCutOff)){  //we are true in this instance, as it did not occur
+                                            result.put("result", Boolean.TRUE);
+                                        }
+                                    })
+                        );
                 break;
             case MINUTES:
                 if((playerAppearance.getDuration() >= 60 && predictionResultUtils.getAverage.apply(fantasyOutcome.getPrediction()) >= 60)

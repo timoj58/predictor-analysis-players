@@ -167,16 +167,6 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
         return topPerformerResponses;
     }
 
-    @Override
-    public List<TopPerformerResponse> topPicks(String competition, FantasyEventTypes fantasyEventTypes) {
-        List<TopPerformerResponse> topPerformerResponses = new ArrayList<>();
-        List<PlayerForm> playerForms = new ArrayList<>();
-
-        teamFacade.getTeamsByCompetition(competition)
-                .stream()
-                .forEach(team -> playerForms.addAll(playerFormRepo.findByTeam(team.getId())));
-        return null;
-    }
 
     @Override
     public void load(UUID receipt) {

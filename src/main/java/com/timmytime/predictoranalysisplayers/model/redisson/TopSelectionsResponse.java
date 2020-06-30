@@ -16,11 +16,13 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class TopSelectionsResponse extends RedissonResponse {
 
+    private Integer order;
     private String event;
     private List<PlayerResponse> playerResponses = new ArrayList<>();
 
-    public TopSelectionsResponse(String event, List<PlayerResponse> playerResponses){
-        this.event = event;
+    public TopSelectionsResponse(FantasyEventTypes fantasyEventTypes, List<PlayerResponse> playerResponses){
+        this.event = fantasyEventTypes.name().toLowerCase();
+        this.order = fantasyEventTypes.getOrder();
         this.playerResponses = playerResponses;
     }
 

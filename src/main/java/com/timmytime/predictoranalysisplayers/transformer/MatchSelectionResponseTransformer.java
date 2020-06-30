@@ -1,6 +1,7 @@
 package com.timmytime.predictoranalysisplayers.transformer;
 
 import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
+import com.timmytime.predictoranalysisplayers.response.FantasyEvent;
 import com.timmytime.predictoranalysisplayers.response.MatchSelectionResponse;
 import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
 import com.timmytime.predictoranalysisplayers.response.MatchPrediction;
@@ -29,11 +30,15 @@ public class MatchSelectionResponseTransformer {
 
     private BiFunction<List<PlayerEventScore>, FantasyEventTypes, MatchSelectionResponse> create = (playerEventScores, fantasyEventTypes) ->
             new MatchSelectionResponse(
-                    fantasyEventTypes.name().toLowerCase(),
+                    fantasyEventTypes,
                     playerEventScores.stream()
                             .filter(f -> f.score > 0.0)
                             .sorted(Comparator.comparing(PlayerEventScore::getScore).reversed())
-                            .map(m -> new PlayerResponse(m.getPlayerResponse(), m.score, fantasyEventTypes.name().toLowerCase()))
+                            .map(m -> new PlayerResponse(
+                                    m.getPlayerResponse(),
+                                    new FantasyEvent(m.score, fantasyEventTypes.name().toLowerCase())
+                                    )
+                            )
                             .collect(Collectors.toList()));
 
 
@@ -89,11 +94,10 @@ public class MatchSelectionResponseTransformer {
 
         matchSelectionResponses.add(create.apply(goals, FantasyEventTypes.GOALS));
         matchSelectionResponses.add(create.apply(assists, FantasyEventTypes.ASSISTS));
-        matchSelectionResponses.add(create.apply(saves, FantasyEventTypes.SAVES));
         matchSelectionResponses.add(create.apply(yellows, FantasyEventTypes.YELLOW_CARD));
+        matchSelectionResponses.add(create.apply(saves, FantasyEventTypes.SAVES));
 
-
-        return matchSelectionResponses;
+        return matchSelectionResponses.stream().sorted(Comparator.comparing(MatchSelectionResponse::getOrder)).collect(Collectors.toList());
     };
 
     @Getter

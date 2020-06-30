@@ -11,6 +11,5 @@ public interface PlayerResponseService {
 
     PlayerResponse get(UUID playerId);
     List<TopPerformerResponse> topPerformers(String competition, FantasyEventTypes fantasyEventTypes);
-    List<TopPerformerResponse> topPicks(String competition, FantasyEventTypes fantasyEventTypes);
     void load(UUID receipt);
 }

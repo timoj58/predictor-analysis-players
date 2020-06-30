@@ -89,10 +89,10 @@ public class MatchServiceImpl implements MatchService {
                 .forEach(league -> {
 
                     //also need to work the top picks...keeping 20 per event
-                    TopSelectionsResponse topSelectionsGoalsResponse = new TopSelectionsResponse(FantasyEventTypes.GOALS.name().toLowerCase(), new ArrayList<>()); //should be using enums...
-                    TopSelectionsResponse topSelectionsAssistsResponse = new TopSelectionsResponse(FantasyEventTypes.ASSISTS.name().toLowerCase(), new ArrayList<>());
-                    TopSelectionsResponse topSelectionsSavesResponse = new TopSelectionsResponse(FantasyEventTypes.SAVES.name().toLowerCase(), new ArrayList<>());
-                    TopSelectionsResponse topSelectionsYellowsResponse = new TopSelectionsResponse(FantasyEventTypes.YELLOW_CARD.name().toLowerCase(), new ArrayList<>());
+                    TopSelectionsResponse topSelectionsGoalsResponse = new TopSelectionsResponse(FantasyEventTypes.GOALS, new ArrayList<>()); //should be using enums...
+                    TopSelectionsResponse topSelectionsAssistsResponse = new TopSelectionsResponse(FantasyEventTypes.ASSISTS, new ArrayList<>());
+                    TopSelectionsResponse topSelectionsSavesResponse = new TopSelectionsResponse(FantasyEventTypes.SAVES, new ArrayList<>());
+                    TopSelectionsResponse topSelectionsYellowsResponse = new TopSelectionsResponse(FantasyEventTypes.YELLOW_CARD, new ArrayList<>());
 
                     matchSelectionsResponseRepo.deleteAll(league.name().toLowerCase());
                     topSelectionsResponseRepo.deleteAll(league.name().toLowerCase());

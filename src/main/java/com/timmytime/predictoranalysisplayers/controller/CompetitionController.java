@@ -53,16 +53,5 @@ public class CompetitionController {
     }
 
 
-    @RequestMapping(
-            value = "{competition}/top-picks",
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ROLE_AUTOMATION')")
-    public ResponseEntity<List<TopPerformerResponse>> getTopPicks(
-            @PathVariable("competition") String competition,
-            @RequestParam("type") String type){
-        return ResponseEntity.ok(playerResponseService.topPicks(competition, FantasyEventTypes.valueOf(type)));
-    }
-
 
 }

@@ -36,7 +36,7 @@ public class PlayerResponse implements Serializable {
 
     private List<FantasyResponse> fantasyResponse = new ArrayList<>();
 
-    public PlayerResponse(PlayerResponse playerResponse, Double fantasyEventScore, String fantasyEventKey){
+    public PlayerResponse(PlayerResponse playerResponse, FantasyEvent fantasyEvent){
         this.label = playerResponse.getLabel();
         this.id = playerResponse.getId();
         this.currentTeam = playerResponse.getCurrentTeam();
@@ -51,8 +51,9 @@ public class PlayerResponse implements Serializable {
         this.marksman = playerResponse.getMarksman();
         this.wizard = playerResponse.getWizard();
 
-        this.fantasyEventScore = fantasyEventScore;
-        this.fantasyEventKey = fantasyEventKey;
+        this.fantasyEventScore = fantasyEvent.getFantasyEventScore();
+        this.fantasyEventKey = fantasyEvent.getFantasyEventKey();
+
 
         this.fantasyResponse = playerResponse.getFantasyResponse();
     }

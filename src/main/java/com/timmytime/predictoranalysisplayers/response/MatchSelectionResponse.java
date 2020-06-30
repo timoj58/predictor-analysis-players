@@ -1,5 +1,6 @@
 package com.timmytime.predictoranalysisplayers.response;
 
+import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,11 +13,13 @@ import java.util.List;
 @NoArgsConstructor
 public class MatchSelectionResponse {
 
+    private Integer order;
     private String event;
     private List<PlayerResponse> playerResponses = new ArrayList<>();
 
-    public MatchSelectionResponse(String event, List<PlayerResponse> playerResponses){
-        this.event = event;
+    public MatchSelectionResponse(FantasyEventTypes fantasyEventTypes, List<PlayerResponse> playerResponses){
+        this.event = fantasyEventTypes.name().toLowerCase();
+        this.order = fantasyEventTypes.getOrder();
         this.playerResponses = playerResponses;
     }
 
