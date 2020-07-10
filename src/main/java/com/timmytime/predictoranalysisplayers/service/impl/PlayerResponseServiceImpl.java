@@ -13,6 +13,7 @@ import com.timmytime.predictoranalysisplayers.receipt.ReceiptManager;
 import com.timmytime.predictoranalysisplayers.repo.mongo.FantasyOutcomeRepo;
 import com.timmytime.predictoranalysisplayers.repo.redis.PlayerFormRepo;
 import com.timmytime.predictoranalysisplayers.repo.redisson.PlayersResponseRepo;
+import com.timmytime.predictoranalysisplayers.response.FantasyEvent;
 import com.timmytime.predictoranalysisplayers.response.FantasyResponse;
 import com.timmytime.predictoranalysisplayers.response.PlayerResponse;
 import com.timmytime.predictoranalysisplayers.response.TopPerformerResponse;
@@ -77,11 +78,29 @@ public class PlayerResponseServiceImpl implements PlayerResponseService {
 
         PlayerForm playerForm = playerFormRepo.findById(playerId).get();
         List<FantasyOutcome> fantasyOutcomes = fantasyOutcomeRepo.findByPlayerIdAndSuccessNull(playerId);
+        List<FantasyOutcome> fantasyOutcomesValidated = fantasyOutcomeRepo.findByPlayerIdAndSuccessNotNull(playerId);
 
         PlayerResponse playerResponse = new PlayerResponse();
         playerResponse.setId(playerId);
         playerResponse.setLabel(playerForm.getLabel());
         playerResponse.setCurrentTeam(teamFacade.findById(playerForm.getTeam()).get().getLabel());
+
+        //need to get the fantasy averages here....
+        /*
+           notes:
+
+           so for all events that have success, get the total score using other tools.
+
+         */
+        if(!fantasyOutcomesValidated.isEmpty()) {
+            Arrays.asList(FantasyEventTypes.values())
+                    .stream()
+                    .filter(f -> f.getPredict() == Boolean.TRUE)
+                    .forEach(event -> {
+                        List<FantasyOutcome> filtered = fantasyOutcomesValidated.stream().filter(f -> f.getFantasyEventType().equals(event)).collect(Collectors.toList());
+                        playerResponse.getAverages().add(new FantasyEvent(fantasyResponseTransformer.total.apply(filtered, event) / filtered.size(), event.name().toLowerCase()));
+                    });
+        }
 
         //also need to work out, set
         playerResponse.setAppearances(

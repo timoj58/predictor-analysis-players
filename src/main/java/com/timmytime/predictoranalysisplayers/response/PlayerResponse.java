@@ -5,10 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 @Setter
@@ -36,6 +33,8 @@ public class PlayerResponse implements Serializable {
 
     private List<FantasyResponse> fantasyResponse = new ArrayList<>();
 
+    private List<FantasyEvent> averages = new ArrayList<>();
+
     public PlayerResponse(PlayerResponse playerResponse, FantasyEvent fantasyEvent){
         this.label = playerResponse.getLabel();
         this.id = playerResponse.getId();
@@ -50,6 +49,7 @@ public class PlayerResponse implements Serializable {
         this.hardmanYellow = playerResponse.getHardmanYellow();
         this.marksman = playerResponse.getMarksman();
         this.wizard = playerResponse.getWizard();
+        this.averages = playerResponse.getAverages();
 
         this.fantasyEventScore = fantasyEvent.getFantasyEventScore();
         this.fantasyEventKey = fantasyEvent.getFantasyEventKey();

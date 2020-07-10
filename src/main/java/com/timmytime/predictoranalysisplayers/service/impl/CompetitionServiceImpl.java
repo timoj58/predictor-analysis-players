@@ -42,6 +42,8 @@ public class CompetitionServiceImpl implements CompetitionService {
     @Value("${training.receipt.timeout}")
     private Long timeout;
 
+    private final Long watcher;
+
     private final PlayerFacade playerFacade;
     private final TeamFacade teamFacade;
     private final PlayerFormService playerFormService;
@@ -56,13 +58,16 @@ public class CompetitionServiceImpl implements CompetitionService {
             TeamFacade teamFacade,
             PlayerFormService playerFormService,
             CompetitionTeamsResponseRepo competitionTeamsResponseRepo,
-            ReceiptManager receiptManager
+            ReceiptManager receiptManager,
+            @Value("${watcher}")
+            Long watcher
     ) {
         this.playerFacade = playerFacade;
         this.teamFacade = teamFacade;
         this.playerFormService = playerFormService;
         this.competitionTeamsResponseRepo = competitionTeamsResponseRepo;
         this.receiptManager = receiptManager;
+        this.watcher = watcher;
     }
 
     @Override
@@ -145,7 +150,7 @@ public class CompetitionServiceImpl implements CompetitionService {
 
             while (!supplier.get()) {
                 try {
-                    waitFor(90000L);
+                    waitFor(watcher);
                 } catch (InterruptedException e) {
                     log.error("competitions watcher", e);
                 }

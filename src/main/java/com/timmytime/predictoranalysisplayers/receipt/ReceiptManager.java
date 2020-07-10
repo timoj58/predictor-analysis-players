@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.ConnectableFlux;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,35 +25,28 @@ public class ReceiptManager {
 
     private ReceiptUtils getReceiptUtils(){return receiptUtils;}
 
+    private Consumer<Receipt> generatedListener;
+    Flux<Receipt> receipts = Flux.create(fluxSink ->
+            generatedListener = (t) -> fluxSink.next(t));
+
+    private Consumer<Receipt> sentListener;
+    Flux<Receipt> sendReceipts = Flux.create(fluxSink ->
+            sentListener = (t) -> fluxSink.next(t));
+
     private List<Receipt> sent = new ArrayList<>();
     private List<UUID> received = new ArrayList<>();
     private List<Receipt> generated = new ArrayList<>();
 
 
-    /*
-    for testing
-     */
-    public Consumer<List<Receipt>> print = receipts -> {
-
-        log.info("receipts total {}", receipts.size());
-
-        receipts.stream()
-                .forEach(receipt -> {
-                    log.info("receipt {} followed by ? ",
-                            receipt.getId());
-                    receipts.stream()
-                            .filter(f -> f.getOnReceived().getReceipt() != null)
-                            .filter(f -> f.getOnReceived().getReceipt().equals(f.getId())).findFirst().ifPresentOrElse(
-                            then -> log.info("followed by {}", then.getId()), () -> log.info("its null")
-                    );
-
-                });
-
-    };
 
     @Autowired
     public ReceiptManager(ReceiptUtils receiptUtils) {
         this.receiptUtils = receiptUtils;
+        this.receipts.publish();
+        this.receipts.subscribe(generated::add);
+        //this.receipts.subscribe((l) -> log.error("we are {}", l.getId()));
+        this.sendReceipts.publish();
+        this.sendReceipts.subscribe(sent::add);
     }
 
     public void linkCompletionReceipt(List<Receipt> receipts, Receipt completionReceipt) {
@@ -78,7 +73,7 @@ public class ReceiptManager {
 
     //for our first job
     public Consumer<Receipt> sendReceipt = receipt -> {
-        sent.add(receipt);
+        sentListener.accept(receipt);
         getReceiptUtils().receiptConsumer.accept(receipt);
     };
 
@@ -117,7 +112,7 @@ public class ReceiptManager {
 
     public BiFunction<UUID, ReceiptTask, Receipt> generateReceipt = (id, onReceived) -> {
         Receipt receipt = new Receipt(id, onReceived);
-        generated.add(receipt);
+        generatedListener.accept(receipt);
         log.info("receipt {} generated", receipt.getId());
 
         return receipt;

@@ -4,7 +4,9 @@ import com.timmytime.predictoranalysisplayers.enumerator.FantasyEventTypes;
 import com.timmytime.predictoranalysisplayers.model.mongo.FantasyOutcome;
 import com.timmytime.predictoranalysisplayers.response.FantasyResponse;
 import com.timmytime.predictoranalysisplayers.util.PredictionResultUtils;
+import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -20,6 +22,20 @@ public class FantasyResponseTransformer {
                     .findFirst()
                     .orElseThrow()
                     .getPrediction();
+
+    public BiFunction<List<FantasyOutcome>, FantasyEventTypes, Double> total = (outcomes, event) -> {
+        JSONObject result =  new JSONObject().put("accumulator", 0.0);
+      switch (event){
+          case SAVES:
+          case MINUTES:
+              outcomes.stream().forEach(f -> result.put("accumulator", result.getDouble("accumulator") + predictionResultUtils.getAverage.apply(f.getPrediction())));
+              break;
+          default:
+              outcomes.stream().forEach(f -> result.put("accumulator", result.getDouble("accumulator") + predictionResultUtils.getScores.apply(f.getPrediction()).values().stream().mapToDouble(m-> m).sum()));
+      }
+
+      return result.getDouble("accumulator");
+    };
 
     public Function<List<FantasyOutcome>, FantasyResponse> transform = outcomes -> {
         FantasyResponse fantasyResponse = new FantasyResponse();

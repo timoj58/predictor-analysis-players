@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -48,7 +49,7 @@ class AutomationServiceImplTest {
 
     //break this up
     private final CompetitionService competitionService = new CompetitionServiceImpl(
-            playerFacade, teamFacade, playerFormService, competitionTeamsResponseRepo, receiptManager
+            playerFacade, teamFacade, playerFormService, competitionTeamsResponseRepo, receiptManager, 1L
     );
     private final TensorflowTrainingService trainingService = new TensorflowTrainingServiceImpl(
             teamFacade, playerFormRepo, tensorflowFacade, receiptManager
@@ -77,16 +78,34 @@ class AutomationServiceImplTest {
     );
 
     @Test
-    @Ignore
     void start() {
 
+        Team team = new Team();
+        team.setId(UUID.randomUUID());
+        team.setCompetition("test");
+        team.setLabel("test");
+        team.setCountry("test");
+        when(teamFacade.getTeamsByCompetition(anyString())).thenReturn(Arrays.asList(team));
+
         automationService.start();
+
+        waiting();
+
+        verify(playerFormService, atMost(1)).saveActiveByYear();
+        verify(lambdaUtils, atMost(1)).startMachineLearning();
+        verify(fantasyOutcomeRepo, atMost(1)).findBySuccessNull();
+        verify(lambdaUtils, atMost(1)).destroy();
+        verify(playersResponseRepo, atLeastOnce()).deleteAll(anyString());
+        verify(playerFormRepo, atLeastOnce()).findByTeam(any(UUID.class));
+        verify(matchSelectionsResponseRepo, atLeastOnce()).deleteAll(anyString());
+        verify(topSelectionsResponseRepo, atLeastOnce()).deleteAll(anyString());
+
 
     }
 
     public synchronized void waiting(){
         try {//90000L
-            this.wait(100000L);
+            this.wait(400L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
